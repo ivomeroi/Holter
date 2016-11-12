@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key="preferencias">
+
+    <EditTextPreference
+        android:title="Su nombre"
+        android:key="nombre" />
+
+    <EditTextPreference
+        android:title="Número de teléfono de emergencia"
+        android:summary="Se contactará automáticamente a este número en caso de detectar una situación de alerta."
+        android:key="numemergencia"
+        android:inputType="phone" />
+
+    <EditTextPreference
+        android:title="Correo electrónico de su médico"
+        android:summary="Se enviará a esta dirección el informe correspondiente al detectar una situación de alerta."
+        android:key="mailmedico"
+        android:inputType="textEmailAddress"/>
+</PreferenceScreen>

@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Holter Bluetooth Inteligente</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Ajustes</string>
+
+    <string name="principal">Principal</string>
+    <string name="fc">Frecuencia Cardíaca</string>
+    <string name="latidos">Latidos</string>
+    <string name="resumen">Resumen por hora</string>
+    <string name="ha">Historial de Alertas</string>
+    <string name="sintomas">Diario de Síntomas</string>
+</resources>
