@@ -1,27 +1,23 @@
 package com.example.anto.holterbluetoothinteligente;
 
-import android.app.ActivityManager;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.design.widget.NavigationView;
-import android.support.design.widget.TabLayout;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
+import com.google.android.material.navigation.NavigationView;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -29,8 +25,6 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import org.w3c.dom.Text;
 
 import java.util.Calendar;
 
@@ -101,7 +95,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void openfragment(int itemnum) {
-        android.support.v4.app.Fragment fragment = null;
+        Fragment fragment = null;
         String title = "";
 
         switch(itemnum) {
@@ -131,7 +125,7 @@ public class MainActivity extends AppCompatActivity
                 fp = false;
                 break;
             case 6:
-                fragment = new diariosintomas();
+                fragment = new no_diariosintomas();
                 title = getString(R.string.sintomas);
                 fp = false;
                 break;
@@ -210,6 +204,7 @@ public class MainActivity extends AppCompatActivity
         alertDialog.setView(texto);
         alertDialog.setPositiveButton("Aceptar",
                 new DialogInterface.OnClickListener() {
+                    @SuppressLint("ResourceAsColor")
                     public void onClick(DialogInterface dialog, int which) {
                         editor.putString("sintoma" + String.valueOf(numsintomas), texto.getText().toString());
                         editor.putLong("horasintoma" + String.valueOf(numsintomas), Calendar.getInstance().getTimeInMillis());

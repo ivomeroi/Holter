@@ -21,33 +21,36 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.ContextCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import android.telephony.SmsManager;
 import android.widget.Toast;
 
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.ActivityRecognition;
-import com.google.android.gms.location.ActivityRecognitionResult;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
-import java.lang.Math;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+//TODO
+import java.util.stream.Collectors;
 
 public class analisisecg extends Service
         implements GoogleApiClient.ConnectionCallbacks {
@@ -162,39 +165,6 @@ public class analisisecg extends Service
         }
     };
 
-    BroadcastReceiver actrecognition = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (ActivityRecognitionResult.hasResult(intent)) {
-                ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
-
-                switch (result.getMostProbableActivity().getType()) {
-                    case 0:
-                        actividad = "Reposo";
-                    case 1:
-                        actividad = "Movimiento";
-                    case 2:
-                        actividad = "Movimiento";
-                    case 3:
-                        actividad = "Reposo";
-                    case 4:
-                        actividad = "Desconocido";
-                    case 5:
-                        actividad = "Reposo";
-                }
-            }
-        }
-    };
-
-    BroadcastReceiver registrarsintomas = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String sintoma = intent.getStringExtra("sintoma");
-
-            sintomas.add(sintoma);
-            qrssintomas.add(qrs.get(qrs.size()-1));
-        }
-    };
 
     BroadcastReceiver alarmReceiver1 = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -231,8 +201,8 @@ public class analisisecg extends Service
                     bradiant = true;
 
                     long h = System.currentTimeMillis();
-                    new guardar().execute(new paramguardar(h, "Bradicardia", señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                    new alerta().execute(new paramalerta(h, "Bradicardia", false));
+                    new guardar().execute(new paramguardar(h, "Bradicardia", señalf2));
+                    new alerta().execute(new paramalerta(h, "Bradicardia"));
                 }
             } else
                 bradiant = false;
@@ -261,51 +231,7 @@ public class analisisecg extends Service
         }
     };
 
-    BroadcastReceiver alarmReceiver2 = new BroadcastReceiver() {
-        public void onReceive(Context context, Intent intent) {
-            PendingIntent alarmIntent4;
 
-            alarmIntent4 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent("alarma2"), 0);
-            alarmMgr.setExact(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 60 * 60 * 1000, alarmIntent4);
-            new codigoalarma2().run();
-        }
-    };
-
-    private class codigoalarma2 implements Runnable {
-        @Override
-        public void run() {
-            int normalactual = normal, ventriactual = ventri, supraactual = supra, marcaactual = marcapasos, minutosactual = intervalos, normalhora, ventrihora, suprahora, marcahora;
-
-            editor.putInt("fcminhora" + String.valueOf(horas), fcminhora);
-            editor.putInt("fcmaxhora" + String.valueOf(horas), fcmaxhora);
-            editor.putFloat("fcavghora" + String.valueOf(horas), (float) sum2 / (minutosactual - minutosant));
-
-            fcminhora = 500;
-            fcmaxhora = 0;
-            sum2 = 0;
-
-            normalhora = normalactual - normalant;
-            ventrihora = ventriactual - ventriant;
-            suprahora = supraactual - supraant;
-            marcahora = marcaactual - marcaant;
-
-            editor.putInt("normalhora" + String.valueOf(horas), normalhora);
-            editor.putInt("ventrihora" + String.valueOf(horas), ventrihora);
-            editor.putInt("suprahora" + String.valueOf(horas), suprahora);
-            editor.putInt("marcahora" + String.valueOf(horas), marcahora);
-
-            horas++;
-            editor.putInt("horas", horas);
-
-            editor.apply();
-
-            minutosant = minutosactual;
-            normalant = normalactual;
-            ventriant = ventriactual;
-            supraant = supraactual;
-            marcaant = marcaactual;
-        }
-    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -318,9 +244,6 @@ public class analisisecg extends Service
         servicioactivo = true;
 
         registerReceiver(alarmReceiver1, new IntentFilter("alarma1"));
-        registerReceiver(alarmReceiver2, new IntentFilter("alarma2"));
-        registerReceiver(registrarsintomas, new IntentFilter("sintomas"));
-        registerReceiver(actrecognition, new IntentFilter("activity"));
 
         Intent intent = new Intent(getApplicationContext(), MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
@@ -381,12 +304,6 @@ public class analisisecg extends Service
 
         unregisterReceiver(buscar);
         unregisterReceiver(alarmReceiver1);
-        unregisterReceiver(alarmReceiver2);
-        unregisterReceiver(actrecognition);
-        unregisterReceiver(registrarsintomas);
-
-        if (((horas > 0) & (Calendar.getInstance().get(Calendar.MINUTE) > 0)) | ((horas == 0) & (intervalos > 0)))
-            new codigoalarma2().run();
 
         editor.putBoolean("terminado", true);
         editor.putLong("horafin", System.currentTimeMillis());
@@ -446,9 +363,8 @@ public class analisisecg extends Service
 
 
     private class recibir implements Runnable {
-        int sinqrs, lectura, datoder, dato, r, i, qrsant, qrsnuevo, qrssintant, qrssintnuevo, datoizq = 0, c1 = 0, c2 = 0, c3 = 0, cpr = 0, numlectura = 0;
-        boolean buscarpico = false, buscarqrs = false, pr = false;
-        double sum, datomilivoltios, datofiltrado, umbral, derivada, max, prerr, postrr, avgrr, maxderivada = 0;
+        int lectura, numlectura = 0;
+        double datomilivoltios, datofiltrado;
 
         ArrayList<Double> ventana1 = new ArrayList<>();
         ArrayList<Double> ventana2 = new ArrayList<>();
@@ -473,189 +389,57 @@ public class analisisecg extends Service
                 try {
                     lectura = instream.read();
 
-                    if ((lectura & 0b11000000) == 0)
-                        datoizq = lectura;
-                    else {
-                        datoder = (lectura & 0b00111111);
-                        dato = (datoizq << 6) + datoder;
-                        datomilivoltios = (dato * (5.0 / 1024) - 1.5625) / 1.1;
+                    datomilivoltios = (lectura * (5.0 / 1024) - 1.5625) / 1.1;
 
+
+                    if (numlectura < 148) {
                         numlectura++;
-                        c3--;
+                        ventana1.add(datomilivoltios);
+                        mf1.add(datomilivoltios);
+                    } else {
+                        numlectura = 0;
+                        ventana2.addAll(mf1);
+                        try {
+                            // Set the command to launch Python and execute the script
+                            //TODO script
+                            String listString = mf1.stream().map(Object::toString)
+                                    .collect(Collectors.joining(", "));
+                            String scriptPath = "script.py";
+                            String[] command = new String[]{"python", scriptPath, listString};
 
-                        señal.remove(0);
-                        señal.add(datomilivoltios);
+                            // Create a ProcessBuilder object and set the command
+                            ProcessBuilder pb = new ProcessBuilder(command);
 
-                        if (numlectura > 35) {
-                            ventana1.clear();
-                            ventana1.addAll(señal);
-                            Collections.sort(ventana1);
+                            // Start the process
+                            Process process = pb.start();
 
-                            mf1.remove(0);
-                            mf1.add(ventana1.get(35));
+                            // Read the output from the process
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                            String output = reader.readLine();
+
+                            // Convert the output to a list of integers
+                            output = output.replace('[', ' ');
+                            output = output.replace(']', ' ');
+                            List<Integer> result = Arrays.stream(output.split(","))
+                                    .map(String::trim)
+                                    .map(Integer::parseInt)
+                                    .collect(Collectors.toList());
+
+                            // Wait for the process to finish
+                            int exitCode = process.waitFor();
+                            System.out.println("Exit code: " + exitCode);
+                            System.out.println("Result: " + result);
+                        } catch (IOException | InterruptedException e) {
+                            e.printStackTrace();
                         }
-
-                        if (numlectura > 142) {
-                            ventana2.clear();
-                            ventana2.addAll(mf1);
-                            Collections.sort(ventana2);
-
-                            señalf1.remove(0);
-                            señalf1.add(datomilivoltios - (ventana2.get(107)));
-                        }
-
-                        if (numlectura > 144) {
-                            sum = 0;
-
-                            for (i = 0; i < 5; i++) {
-                                sum = sum + señalf1.get(i);
-                            }
-
-                            datofiltrado = sum / 5;
-
-                            señalf2.add(datofiltrado);
-
-                            if (señalf2.size() > 1296000) {
-                                señalf2.remove(0);
-
-                                for (i = (qrs.size() - 1); i > (-1); i--) {
-                                    qrsant = qrs.get(i);
-                                    qrsnuevo = qrsant - 1;
-
-                                    if (qrsnuevo < 0) {
-                                        qrs.remove(i);
-                                        clases.remove(i);
-                                        actividades.remove(i);
-                                    } else {
-                                        qrs.set(i, qrsnuevo);
-                                    }
-                                }
-
-                                for (i = (qrssintomas.size() - 1); i > (-1); i--) {
-                                    qrssintant = qrssintomas.get(i);
-                                    qrssintnuevo = qrssintant - 1;
-
-                                    if (qrssintnuevo < 0) {
-                                        qrssintomas.remove(i);
-                                        sintomas.remove(i);
-                                    } else {
-                                        qrssintomas.set(i, qrssintnuevo);
-                                    }
-                                }
-                            }
-
-                            Intent intent2 = new Intent("info");
-                            intent2.putExtra("datofiltrado", datofiltrado);
-                            getApplicationContext().sendBroadcast(intent2);
-                        }
-
-                        if ((numlectura < 867) & (numlectura > 146)) {
-                            derivada = señalf2.get(señalf2.size() - 1) - señalf2.get(señalf2.size() - 3);
-
-                            if (derivada > maxderivada) {
-                                maxderivada = derivada;
-                            }
-
-                        } else if (numlectura == 867) {
-                            umbral = 0.3 * maxderivada;
-
-                            editor.putLong("horacomienzo", System.currentTimeMillis());
-
-                        } else if (numlectura > 867) {
-                            sinqrs++;
-
-                            if (sinqrs == 721) {
-                                pausas++;
-                                editor.putInt("pausas", pausas);
-                                editor.apply();
-                            }
-
-                            if (sinqrs == 1081) {
-                                long h = System.currentTimeMillis();
-                                String evento = "Pausa mayor a 2 s";
-                                new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                                new alerta().execute(new paramalerta(h, evento, true));
-                            }
-
-                            if (!pr) {
-                                derivada = señalf2.get(señalf2.size() - 1) - señalf2.get(señalf2.size() - 3);
-
-                                if (derivada > umbral) {
-                                    if (!buscarpico)
-                                        buscarpico = true;
-                                    else {
-                                        c1++;
-
-                                        if (c1 == 3) {
-                                            c1 = 0;
-                                            buscarpico = false;
-                                            buscarqrs = true;
-                                            pr = true;
-                                        }
-                                    }
-                                } else {
-                                    buscarpico = false;
-                                    c1 = 0;
-                                }
-                            } else {
-                                cpr++;
-
-                                if (buscarqrs) {
-                                    c2++;
-
-                                    if (c2 > 29) {
-                                        c2 = 0;
-                                        max = 0;
-                                        buscarqrs = false;
-
-                                        for (i = (señalf2.size() - 62); i < (señalf2.size() - 1); i++) {
-                                            if (Math.abs(señalf2.get(i)) > max) {
-                                                max = Math.abs(señalf2.get(i));
-                                                r = i;
-                                            }
-                                        }
-
-                                        qrs.add(r);
-                                        latidos++;
-                                        sinqrs = 0;
-
-                                        if (qrs.size() == 1) {
-                                            Calendar calendar = Calendar.getInstance();
-                                            calendar.setTimeInMillis(System.currentTimeMillis());
-                                            calendar.set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY) + 1);
-                                            calendar.set(Calendar.MINUTE, 0);
-
-                                            alarmMgr = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
-                                            alarmIntent1 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent("alarma1"), 0);
-                                            alarmMgr.setExact(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 60 * 1000, alarmIntent1);
-                                            alarmIntent2 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent("alarma2"), 0);
-                                            alarmMgr.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), alarmIntent2);
-                                        }
-
-                                        if (qrs.size() > 11) {
-                                            prerr = qrs.get(qrs.size() - 2) - qrs.get(qrs.size() - 3);
-                                            postrr = qrs.get(qrs.size() - 1) - qrs.get(qrs.size() - 2);
-                                            avgrr = (qrs.get(qrs.size() - 2) - qrs.get(qrs.size() - 12)) / 10;
-
-                                            executorService.execute(new analizar(señallatido.toArray(señallatido2), prerr, postrr, avgrr));
-                                        }
-
-                                        c3 = 91 - (señalf2.size() - r);
-                                    }
-                                }
-
-                                if (cpr > 72) {
-                                    cpr = 0;
-                                    pr = false;
-                                }
-                            }
-                        }
-
-                        if (c3 == 0) {
-                            señallatido.clear();
-                            señallatido.addAll(señalf2.subList(señalf2.size() - 182, señalf2.size() - 1));
-                        }
+                        //TODO
+                        // cambiar vista
                     }
+
+                    Intent intent2 = new Intent("info");
+                    intent2.putExtra("datofiltrado", datofiltrado);
+                    getApplicationContext().sendBroadcast(intent2);
+
                 }
 
                 catch (IOException e) {
@@ -678,7 +462,6 @@ public class analisisecg extends Service
         Double[] salidacapa2 = new Double[tamañosalida];
 
         int i, numclase;
-        String nombreclase;
         double max;
 
 
@@ -689,306 +472,20 @@ public class analisisecg extends Service
 
         @Override
         public void run() {
-            señalstd = estandarizar(señallatido, media1, stddev1);
-            señalpca = multmatrices(pca, señalstd);
-            tempstd = estandarizar(temp, media2, stddev2);
-
-            entradacapa1[0] = 1d;
-
-            for (i = 1; i < 11; i++) {
-                entradacapa1[i] = señalpca[i - 1];
-            }
-
-            for (i = 11; i < 14; i++) {
-                entradacapa1[i] = tempstd[i - 11];
-            }
-
-            salidacapa1 = tansig(multmatrices(pesos1, entradacapa1));
-
-            entradacapa2[0] = 1d;
-
-            for (i = 1; i < (tamañocapaoculta + 1); i++) {
-                entradacapa2[i] = salidacapa1[i - 1];
-            }
-
-            salidacapa2 = softmax(multmatrices(pesos2, entradacapa2));
-
-            for (i = 0; i < (tamañosalida); i++) {
-                if (salidacapa2[i] > max) {
-                    max = salidacapa2[i];
-                    numclase = i;
-                }
-            }
-
-            switch(numclase) {
-                case 0: {
-                    nombreclase = "N";
-                    normal++;
-                    editor.putInt("N", normal);
-
-                    if (contventri == 1) {
-                        aisladasventri++;
-                        editor.putInt("AV", aisladasventri);
-                    }
-
-                    if (contsupra == 1) {
-                        aisladassupra++;
-                        editor.putInt("AS", aisladassupra);
-                    }
-
-                    if (contventri == 2) {
-                        duplasventri++;
-                        editor.putInt("DV", duplasventri);
-
-                        long h = System.currentTimeMillis();
-                        String evento = "Dupla ventricular";
-                        new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                        new alerta().execute(new paramalerta(h, evento, false));
-                    }
-
-                    if (contsupra == 2) {
-                        duplassupra++;
-                        editor.putInt("DS", duplassupra);
-                    }
-
-                    if (contventri == 3) {
-                        tripletesventri++;
-                        editor.putInt("TV", tripletesventri);
-
-                        long h = System.currentTimeMillis();
-                        String evento = "Triplete ventricular";
-                        new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                        new alerta().execute(new paramalerta(h, evento, false));
-                    }
-
-                    if (contsupra == 3) {
-                        tripletessupra++;
-                        editor.putInt("TS", tripletessupra);
-                    }
-
-                    contventri = 0;
-                    contsupra = 0;
-
-                    break;
-                }
-                case 1: {
-                    nombreclase = "V";
-                    ventri++;
-                    contventri++;
-
-                    editor.putInt("V", ventri);
-
-                    if (contventri == 4) {
-                        corridasventri++;
-                        editor.putInt("CV", corridasventri);
-
-                        long h = System.currentTimeMillis();
-                        String evento = "Taquicardia ventricular";
-                        new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                        new alerta().execute(new paramalerta(h, evento, true));
-                    }
-
-                    if (contsupra == 1) {
-                        aisladassupra++;
-                        editor.putInt("AS", aisladassupra);
-                    }
-
-                    if (contsupra == 2) {
-                        duplassupra++;
-                        editor.putInt("DS", duplassupra);
-                    }
-
-                    if (contsupra == 3) {
-                        tripletessupra++;
-                        editor.putInt("TS", tripletessupra);
-                    }
-
-                    contsupra = 0;
-
-                    break;
-                }
-                case 2: {
-                    nombreclase = "S";
-                    supra++;
-                    contsupra++;
-
-                    editor.putInt("S", supra);
-
-                    if (contsupra== 4) {
-                        corridassupra++;
-                        editor.putInt("CS", corridassupra);
-                    }
-
-                    if (contsupra == 200) {
-                        long h = System.currentTimeMillis();
-                        String evento = "Taquicardia paroxística supraventricular prolongada";
-                        new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                        new alerta().execute(new paramalerta(h, evento, true));
-                    }
-
-                    if (contventri == 1) {
-                        aisladasventri++;
-                        editor.putInt("AV", aisladasventri);
-                    }
-
-                    if (contventri == 2) {
-                        duplasventri++;
-                        editor.putInt("DV", duplasventri);
-
-                        long h = System.currentTimeMillis();
-                        String evento = "Dupla ventricular";
-                        new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                        new alerta().execute(new paramalerta(h, evento, false));
-                    }
-
-                    if (contventri == 3) {
-                        tripletesventri++;
-                        editor.putInt("TV", tripletesventri);
-
-                        long h = System.currentTimeMillis();
-                        String evento = "Triplete ventricular";
-                        new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                        new alerta().execute(new paramalerta(h, evento, false));
-                    }
-
-                    contventri = 0;
-
-                    break;
-                }
-                case 3: {
-                    nombreclase = "M";
-                    marcapasos++;
-                    editor.putInt("M", marcapasos);
-
-                    if (contventri == 1) {
-                        aisladasventri++;
-                        editor.putInt("AV", aisladasventri);
-                    }
-
-                    if (contsupra == 1) {
-                        aisladassupra++;
-                        editor.putInt("AS", aisladassupra);
-                    }
-
-                    if (contventri == 2) {
-                        duplasventri++;
-                        editor.putInt("DV", duplasventri);
-
-                        long h = System.currentTimeMillis();
-                        String evento = "Dupla ventricular";
-                        new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                        new alerta().execute(new paramalerta(h, evento, false));
-                    }
-
-                    if (contsupra == 2) {
-                        duplassupra++;
-                        editor.putInt("DS", duplassupra);
-                    }
-
-                    if (contventri == 3) {
-                        tripletesventri++;
-                        editor.putInt("TV", tripletesventri);
-
-                        long h = System.currentTimeMillis();
-                        String evento = "Triplete ventricular";
-                        new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                        new alerta().execute(new paramalerta(h, evento, false));
-                    }
-
-                    if (contsupra == 3) {
-                        tripletessupra++;
-                        editor.putInt("TS", tripletessupra);
-                    }
-
-                    contventri = 0;
-                    contsupra = 0;
-
-                    break;
-                }
-            }
 
             editor.apply();
-            clases.add(nombreclase);
-            actividades.add(actividad);
 
-            for (int i = 0; i < clases.size(); i++) {
-                int cont = 0;
-
-                if (clases.get(i).equals("S") | clases.get(i).equals("V"))
-                    cont++;
-
-                if (cont > 1000) {
-                    long h = System.currentTimeMillis();
-                    String evento = "Extrasístoles frecuentes";
-                    new guardar().execute(new paramguardar(h, evento, señalf2, qrs, clases, qrssintomas, sintomas, actividades));
-                    new alerta().execute(new paramalerta(h, evento, false));
-                }
-
-            }
         }
     }
 
-    Double[] multmatrices (Double[][] matriz1, Double [] matriz2) {
-        Double[] salida = new Double[matriz1.length];
-        double sum;
-
-        for (int i = 0; i < matriz1.length; i++) {
-            sum = 0;
-
-            for (int k = 0; k < matriz2.length; k++) {
-                sum = sum + (matriz1[i][k] * matriz2[k]);
-            }
-
-            salida[i] = sum;
-        }
-
-        return salida;
-    }
-
-    Double[] estandarizar (Double[] señal, Double[] media, Double[] stddev) {
-        Double[] señalestandarizada = new Double[señal.length];
-
-        for (int i = 0; i < señal.length; i++) {
-            señalestandarizada[i] = (señal[i] - media[i])/(stddev[i]);
-        }
-
-        return señalestandarizada;
-    }
-
-    Double[] tansig (Double[] entrada) {
-        Double[] salida = new Double[entrada.length];
-
-        for (int i=0; i < (entrada.length); i++) {
-            salida[i] = 2 / (1 + Math.exp(-2 * entrada[i])) - 1;
-        }
-
-        return salida;
-    }
-
-    Double[] softmax (Double[] entrada) {
-        Double[] salida = new Double[entrada.length];
-        double sum = 0;
-
-        for (int i=0; i < (entrada.length); i++) {
-            sum = sum + Math.exp(entrada[i]);
-        }
-
-        for (int i=0; i < (entrada.length); i++) {
-            salida[i] = (Math.exp(entrada[i]))/sum;
-        }
-
-        return salida;
-    }
 
     private static class paramalerta {
         long hora;
         String tipo;
-        boolean grave;
 
-        paramalerta (long hora, String tipo, boolean grave) {
+        paramalerta (long hora, String tipo) {
             this.hora = hora;
             this.tipo = tipo;
-            this.grave = grave;
         }
     }
 
@@ -999,7 +496,6 @@ public class analisisecg extends Service
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(hora);
             String tipo = params[0].tipo;
-            Boolean grave = params[0].grave;
             String nombre = sharedPreferences.getString("nombre", "0");
             String numero = sharedPreferences.getString("numemergencia", "0");
             String mail = sharedPreferences.getString("mailmedico", "0");
@@ -1007,15 +503,13 @@ public class analisisecg extends Service
             if (nombre.equals(""))
                 nombre = "su familiar";
 
-            if (grave) {
-                if (!numero.equals("")) {
-                    SmsManager manager = SmsManager.getDefault();
+            if (!numero.equals("")) {
+                SmsManager manager = SmsManager.getDefault();
 
-                    if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
-                        String mensaje = "Se detectó una situación de emergencia en el electrocardiograma de " + nombre + ". Contacte a un número de emergencia de inmediato";
-                        ArrayList<String> partes = manager.divideMessage(mensaje);
-                        manager.sendMultipartTextMessage(numero, null, partes, null, null);
-                    }
+                if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
+                    String mensaje = "Se detectó una situación de emergencia en el electrocardiograma de " + nombre + ". Contacte a un número de emergencia de inmediato";
+                    ArrayList<String> partes = manager.divideMessage(mensaje);
+                    manager.sendMultipartTextMessage(numero, null, partes, null, null);
                 }
             }
 
@@ -1030,10 +524,7 @@ public class analisisecg extends Service
                     .setColor(ContextCompat.getColor(getApplicationContext(), R.color.colorPrimary))
                     .setContentIntent(pendingIntent);
 
-            if (grave)
-                notificationBuilder.setContentText("Se detectó un episodio y se contactó al número de emergencia.");
-            else
-                notificationBuilder.setContentText("Se recomienda consultar a su médico en cuanto sea posible.");
+            notificationBuilder.setContentText("Se detectó un episodio y se contactó al número de emergencia.");
 
             Notification notificacion = notificationBuilder.build();
             NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -1068,21 +559,11 @@ public class analisisecg extends Service
         long horaguardar;
         String eventoguardar;
         ArrayList<Double> señalguardar;
-        ArrayList<Integer> qrsguardar;
-        ArrayList<String> clasesguardar;
-        ArrayList<Integer> qrssintomasguardar;
-        ArrayList<String> sintomasguardar;
-        ArrayList<String> actividadesguardar;
 
-        paramguardar(long horaguardar, String eventoguardar, ArrayList<Double> señalguardar, ArrayList<Integer> qrsguardar, ArrayList<String> clasesguardar, ArrayList<Integer> qrssintomasguardar, ArrayList<String> sintomasguardar, ArrayList<String> actividadesguardar) {
+        paramguardar(long horaguardar, String eventoguardar, ArrayList<Double> señalguardar) {
             this.horaguardar = horaguardar;
             this.eventoguardar = eventoguardar;
             this.señalguardar = señalguardar;
-            this.qrsguardar = qrsguardar;
-            this.clasesguardar = clasesguardar;
-            this.qrssintomasguardar = qrssintomasguardar;
-            this.sintomasguardar = sintomasguardar;
-            this.actividadesguardar = actividadesguardar;
         }
     }
 
@@ -1090,7 +571,7 @@ public class analisisecg extends Service
         @Override
         protected Void doInBackground(paramguardar... params) {
             JSONObject obj = new JSONObject();
-            JSONArray senaljson = new JSONArray(), qrsjson = new JSONArray(), clasesjson = new JSONArray(), qrssintomasjson = new JSONArray(), sintomasjson = new JSONArray(), actividadesjson = new JSONArray();
+            JSONArray senaljson = new JSONArray();
 
             long hora = params[0].horaguardar;
             String evento = params[0].eventoguardar;
@@ -1098,40 +579,12 @@ public class analisisecg extends Service
             calendar.setTimeInMillis(hora);
             String archivo = "informe" + String.format("%d%02d", calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE)) + ".json";
 
-            for (int i = 0; i < params[0].señalguardar.size(); i++) {
-                senaljson.put(params[0].señalguardar.get(i));
-            }
-
-            for (int i = 0; i < params[0].qrsguardar.size(); i++) {
-                qrsjson.put(params[0].qrsguardar.get(i));
-            }
-
-            for (int i = 0; i < params[0].clasesguardar.size(); i++) {
-                clasesjson.put(params[0].clasesguardar.get(i));
-            }
-
-            for (int i = 0; i < params[0].qrssintomasguardar.size(); i++) {
-                qrssintomasjson.put(params[0].qrssintomasguardar.get(i));
-            }
-
-            for (int i = 0; i < params[0].sintomasguardar.size(); i++) {
-                sintomasjson.put(params[0].sintomasguardar.get(i));
-            }
-
-            for (int i = 0; i < params[0].actividadesguardar.size(); i++) {
-                actividadesjson.put(params[0].actividadesguardar.get(i));
-            }
 
             try {
                 obj.put("hora", calendar.get(Calendar.HOUR_OF_DAY));
                 obj.put("minutos", calendar.get(Calendar.MINUTE));
                 obj.put("evento", evento);
                 obj.put("senal", senaljson);
-                obj.put("qrs", qrsjson);
-                obj.put("clases", clasesjson);
-                obj.put("qrssintomas", qrssintomasjson);
-                obj.put("sintomas", sintomasjson);
-                obj.put("actividades", actividadesjson);
             }
             catch(JSONException e) {
             }

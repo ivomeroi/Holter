@@ -6,8 +6,8 @@ import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.support.v4.app.Fragment;
-import android.support.v4.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.core.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,7 +22,6 @@ import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 
 import java.util.Calendar;
-import java.util.Date;
 
 public class fc2 extends Fragment {
     Handler handler = new Handler();
