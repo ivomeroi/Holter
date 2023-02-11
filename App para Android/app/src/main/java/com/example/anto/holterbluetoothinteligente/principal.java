@@ -16,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
@@ -126,18 +127,32 @@ public class principal extends Fragment {
     private BroadcastReceiver recibirinfo = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            ArrayList<Integer> datomilivoltios = intent.getIntegerArrayListExtra("datofiltrado");
-            for(Integer dato : datomilivoltios) {
-                if (i > 2) {
-                    i = 0;
-                    data.clear();
-                }
+            datomilivoltios = intent.getDoubleExtra("datofiltrado", 0);
+            dato = datomilivoltios;
 
-                data.add(i, dato);
-                grafico.repaint();
-
-                i = i + periodo;
+            if (i > 2) {
+                i = 0;
+                data.clear();
             }
+
+            data.add(i, dato);
+            grafico.repaint();
+
+            i = i + periodo;
+
+//            ArrayList<Integer> datomilivoltios = intent.getIntegerArrayListExtra("datofiltrado");
+//            for(Integer dato : datomilivoltios) {
+//                if (i > 2) {
+//                    i = 0;
+//                    data.clear();
+//                }
+//
+//                data.add(i, dato);
+//                grafico.repaint();
+//
+//                i = i + periodo;
+//            }
+
         }
     };
 }

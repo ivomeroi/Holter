@@ -88,19 +88,19 @@ public class inicio1 extends AppCompatActivity {
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-
-        List<String> s = new ArrayList<String>();
-        List<String> a = new ArrayList<String>();
-        List<String> u = new ArrayList<String>();
-        for(BluetoothDevice bt : pairedDevices){
-            s.add(bt.getName());
-            a.add(bt.getAddress());
-            u.add((bt.getUuids())[0].getUuid().toString());
-        }
-        Toast.makeText(this, "A " + s, Toast.LENGTH_SHORT).show();
-        Toast.makeText(this, "B " + a, Toast.LENGTH_SHORT).show();
-        Toast.makeText(this, "U " + u, Toast.LENGTH_SHORT).show();
+//        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+//
+//        List<String> s = new ArrayList<String>();
+//        List<String> a = new ArrayList<String>();
+//        List<String> u = new ArrayList<String>();
+//        for(BluetoothDevice bt : pairedDevices){
+//            s.add(bt.getName());
+//            a.add(bt.getAddress());
+//            u.add((bt.getUuids())[0].getUuid().toString());
+//        }
+//        Toast.makeText(this, "A " + s, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "B " + a, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "U " + u, Toast.LENGTH_SHORT).show();
 
     }
 }

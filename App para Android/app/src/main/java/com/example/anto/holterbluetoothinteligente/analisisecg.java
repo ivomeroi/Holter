@@ -8,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -64,6 +65,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -171,68 +176,64 @@ public class analisisecg extends Service
     public analisisecg() {
     }
 
-    BroadcastReceiver buscar = new BroadcastReceiver() {
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-
-            if ((BluetoothDevice.ACTION_FOUND).equals(action)) {
-                device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
-                }
-                Toast.makeText(getApplicationContext(), "Encontro " + device.getName(), Toast.LENGTH_SHORT).show();
-
-                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
-                }
-                if (device.getName().equals("HC-05")) {
-                    Toast.makeText(getApplicationContext(), "Conectado", Toast.LENGTH_SHORT).show();
-                    encontrado = true;
-                    new Thread(new conectar(device)).start();
-                } else {
-                    Toast.makeText(getApplicationContext(), "Conectado a " + device.getName(), Toast.LENGTH_SHORT).show();
-                }
-            } else if ((BluetoothAdapter.ACTION_DISCOVERY_FINISHED).equals(action)) {
-                if (!encontrado) {
-                    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                        // TODO: Consider calling
-                        //    ActivityCompat#requestPermissions
-                        // here to request the missing permissions, and then overriding
-                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                        //                                          int[] grantResults)
-                        // to handle the case where the user grants the permission. See the documentation
-                        // for ActivityCompat#requestPermissions for more details.
-                        return;
-                    }
-
-                }
-            } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-                Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-
-                for (BluetoothDevice bt : pairedDevices)
-                    if (device.getName().equals("HC-05")) {
-                        Toast.makeText(getApplicationContext(), "Dispositivo no encontrado conectar", Toast.LENGTH_LONG).show();
-                        new Thread(new conectar(device)).start();
-                    }
-                Toast.makeText(getApplicationContext(), "Dispositivo no encontrado", Toast.LENGTH_LONG).show();
-            }
-        }
-    };
+//    BroadcastReceiver buscar = new BroadcastReceiver() {
+//        public void onReceive(Context context, Intent intent) {
+//            String action = intent.getAction();
+//
+//            if ((BluetoothDevice.ACTION_FOUND).equals(action)) {
+//                device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+//                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+//                    // TODO: Consider calling
+//                    //    ActivityCompat#requestPermissions
+//                    // here to request the missing permissions, and then overriding
+//                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                    //                                          int[] grantResults)
+//                    // to handle the case where the user grants the permission. See the documentation
+//                    // for ActivityCompat#requestPermissions for more details.
+//                    return;
+//                }
+//                Toast.makeText(getApplicationContext(), "Encontro " + device.getName(), Toast.LENGTH_SHORT).show();
+//
+//                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+//                    // TODO: Consider calling
+//                    //    ActivityCompat#requestPermissions
+//                    // here to request the missing permissions, and then overriding
+//                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                    //                                          int[] grantResults)
+//                    // to handle the case where the user grants the permission. See the documentation
+//                    // for ActivityCompat#requestPermissions for more details.
+//                    return;
+//                }
+//                if (device.getName().equals("HC-05")) {
+//                    Toast.makeText(getApplicationContext(), "Conectado", Toast.LENGTH_SHORT).show();
+//                    encontrado = true;
+//                } else {
+//                    Toast.makeText(getApplicationContext(), "Conectado a " + device.getName(), Toast.LENGTH_SHORT).show();
+//                }
+//            } else if ((BluetoothAdapter.ACTION_DISCOVERY_FINISHED).equals(action)) {
+//                if (!encontrado) {
+//                    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+//                        // TODO: Consider calling
+//                        //    ActivityCompat#requestPermissions
+//                        // here to request the missing permissions, and then overriding
+//                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                        //                                          int[] grantResults)
+//                        // to handle the case where the user grants the permission. See the documentation
+//                        // for ActivityCompat#requestPermissions for more details.
+//                        return;
+//                    }
+//
+//                }
+//            } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+//                Set<BluetoothDevice> pairedDevices = btadapter.getBondedDevices();
+//
+//                for (BluetoothDevice bt : pairedDevices)
+//                    if (bt.getName().equals("HC-05")) {
+//                        break;
+//                    }
+//            }
+//        }
+//    };
 
 
     BroadcastReceiver alarmReceiver1 = new BroadcastReceiver() {
@@ -310,7 +311,6 @@ public class analisisecg extends Service
         super.onCreate();
 
         servicioactivo = true;
-        Toast.makeText(getApplicationContext(), "Dispositivo no encontrado conectar", Toast.LENGTH_LONG).show();
 
         registerReceiver(alarmReceiver1, new IntentFilter("alarma1"));
 
@@ -333,7 +333,6 @@ public class analisisecg extends Service
         editor.putBoolean("terminado", false);
         editor.apply();
 
-        Toast.makeText(getApplicationContext(), "Buscando...", Toast.LENGTH_SHORT).show();
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -342,27 +341,42 @@ public class analisisecg extends Service
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
-            Toast.makeText(getApplicationContext(), "Se murio..." + PackageManager.PERMISSION_GRANTED, Toast.LENGTH_SHORT).show();
             return;
         }
 
-        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-        for (BluetoothDevice bt : pairedDevices) {
-            if (bt.getName().equals("HC-05")) {
-                Toast.makeText(getApplicationContext(), "Dispositivo no encontrado conectar", Toast.LENGTH_LONG).show();
-
-                new Thread(new conectar(bt)).start();
-            }
+        String BLUETOOTH_ADDRESS = "00:18:E4:34:C5:45";
+        BluetoothDevice device = btadapter.getRemoteDevice(BLUETOOTH_ADDRESS);
+        Method m = null;
+        try {
+            m = device.getClass().getMethod("isConnected", (Class[]) null);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
         }
-        Toast.makeText(getApplicationContext(), "Dispositivo no encontrado", Toast.LENGTH_LONG).show();
+        boolean boo = false;
+        try {
+            boo = (boolean) m.invoke(device, (Object[]) null);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
 
-        googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
-                .addApi(ActivityRecognition.API)
-                .addConnectionCallbacks(this)
-                .build();
+        if(!boo){
+            new Thread(new conectar(device)).start();
+            googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
+                    .addApi(ActivityRecognition.API)
+                    .addConnectionCallbacks(this)
+                    .build();
 
-        googleApiClient.connect();
+            googleApiClient.connect();
+        }
+
+//        googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
+//                .addApi(ActivityRecognition.API)
+//                .addConnectionCallbacks(this)
+//                .build();
+//
+//        googleApiClient.connect();
     }
 
     @Override
@@ -377,25 +391,24 @@ public class analisisecg extends Service
 
     public void onDestroy() {
         super.onDestroy();
-        servicioactivo = false;
+        //servicioactivo = false;
 
-        if (instream != null) {
-            try {
-                instream.close();
-            } catch (Exception e) {
-            }
-            instream = null;
-        }
+//        if (instream != null) {
+//            try {
+//                instream.close();
+//            } catch (Exception e) {
+//            }
+//            instream = null;
+//        }
 
-        if (btsocket != null) {
-            try {
-                btsocket.close();
-            } catch (Exception e) {
-            }
-            btsocket = null;
-        }
+//        if (btsocket != null) {
+//            try {
+//                btsocket.close();
+//            } catch (Exception e) {
+//            }
+//            btsocket = null;
+//        }
 
-        unregisterReceiver(buscar);
         unregisterReceiver(alarmReceiver1);
 
         editor.putBoolean("terminado", true);
@@ -403,32 +416,50 @@ public class analisisecg extends Service
         editor.apply();
     }
 
-    private class conectar implements Runnable {
+    public class conectar implements Runnable {
         public conectar(BluetoothDevice device) {
-//            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-//
-//
-//            try {
-//                btsocket = device.createRfcommSocketToServiceRecord(uuid);
-//            } catch (IOException e) {
-//                btsocket = null;
-//
-//            }
-            Toast.makeText(analisisecg.this, "Pre socket", Toast.LENGTH_SHORT).show();
+            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
+            try {
+                if (ActivityCompat.checkSelfPermission(analisisecg.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                if (btsocket == null)
+                    btsocket = device.createRfcommSocketToServiceRecord(uuid);
+            } catch (IOException e) {
+                btsocket = null;
+
+            }
         }
 
 
         public void run() {
             try {
+                if (ActivityCompat.checkSelfPermission(analisisecg.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
                 btsocket.connect();
             } catch (IOException connectException) {
-                try {
-                    handler.post(() -> Toast.makeText(getApplicationContext(), "Falló la conexión", Toast.LENGTH_SHORT).show());
-
-                    btsocket.close();
-                } catch (IOException closeException) {
-                }
+//                try {
+//                    handler.post(() -> Toast.makeText(getApplicationContext(), "Falló la conexión", Toast.LENGTH_SHORT).show());
+//
+//                    btsocket.close();
+//                } catch (IOException closeException) {
+//                }
 
                 return;
             }
@@ -445,7 +476,25 @@ public class analisisecg extends Service
                     editor.apply();
                 }
             });
-            new Thread(new recibir()).start();
+            String BLUETOOTH_ADDRESS = "00:18:E4:34:C5:45";
+            BluetoothDevice device = btadapter.getRemoteDevice(BLUETOOTH_ADDRESS);
+            Method m = null;
+            try {
+                m = device.getClass().getMethod("isConnected", (Class[]) null);
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            }
+            boolean boo = false;
+            try {
+                boo = (boolean) m.invoke(device, (Object[]) null);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+            if(boo){
+                new Thread(new recibir()).start();
+            }
 
         }
 
@@ -454,8 +503,9 @@ public class analisisecg extends Service
 
 
     class recibir implements Runnable {
-        int lectura, numlectura = 0;
-        double datomilivoltios, datofiltrado;
+        int sinqrs, lectura, datoder, dato, r, i, qrsant, qrsnuevo, qrssintant, qrssintnuevo, datoizq = 0, c1 = 0, c2 = 0, c3 = 0, cpr = 0, numlectura = 0;
+        boolean buscarpico = false, buscarqrs = false, pr = false;
+        double sum, datomilivoltios, datofiltrado, umbral, derivada, max, prerr, postrr, avgrr, maxderivada = 0;
 
         ArrayList<Double> ventana1 = new ArrayList<>();
         ArrayList<Double> ventana2 = new ArrayList<>();
@@ -464,7 +514,17 @@ public class analisisecg extends Service
         ArrayList<Double> señalf1 = new ArrayList<>(Collections.nCopies(5,0d));
         ArrayList<Double> señallatido = new ArrayList<>();
         Double[] señallatido2 = new Double[181];
-        List<Integer> result;
+//        int lectura, numlectura = 0;
+//        double datomilivoltios, datofiltrado;
+//
+//        ArrayList<Double> ventana1 = new ArrayList<>();
+//        ArrayList<Double> ventana2 = new ArrayList<>();
+//        ArrayList<Double> señal = new ArrayList<>(Collections.nCopies(71,0d));
+//        ArrayList<Double> mf1 = new ArrayList<>(Collections.nCopies(215,0d));
+//        ArrayList<Double> señalf1 = new ArrayList<>(Collections.nCopies(5,0d));
+//        ArrayList<Double> señallatido = new ArrayList<>();
+//        Double[] señallatido2 = new Double[181];
+//        List<Integer> result;
 
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -478,63 +538,117 @@ public class analisisecg extends Service
 
         public void run() {
             while (servicioactivo) {
+//                try {
+//
+//                    lectura = instream.read();
+//
+//                    datomilivoltios = (lectura * (5.0 / 1024) - 1.5625) / 1.1;
+//
+//
+//                    if (numlectura < 3) {
+//                        numlectura++;
+//                        ventana1.add(datomilivoltios);
+//                        mf1.add(datomilivoltios);
+//                    } else {
+//                        numlectura = 0;
+//                        ventana2.addAll(mf1);
+//                        try {
+//                            // Set the command to launch Python and execute the script
+//                            //TODO script
+//                            String listString = null;
+//                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+//                                listString = mf1.stream().map(Object::toString)
+//                                        .collect(Collectors.joining(", "));
+//                            }
+//                            String scriptPath = "preprocess.py";
+//                            String[] command = new String[]{"python", scriptPath, listString};
+//
+//                            // Create a ProcessBuilder object and set the command
+//                            ProcessBuilder pb = new ProcessBuilder(command);
+//
+//                            // Start the process
+//                            Process process = pb.start();
+//
+//                            // Read the output from the process
+//                            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+//                            String output = reader.readLine();
+//
+//                            // Convert the output to a list of integers
+//                            output = output.replace('[', ' ');
+//                            output = output.replace(']', ' ');
+//                            result = null;
+//                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+//                                result = Arrays.stream(output.split(","))
+//                                        .map(String::trim)
+//                                        .map(Integer::parseInt)
+//                                        .collect(Collectors.toList());
+//                            }
+//                            Intent intent2 = new Intent("info");
+//                            intent2.putIntegerArrayListExtra("datofiltrado", (ArrayList<Integer>) result);
+//                            getApplicationContext().sendBroadcast(intent2);
+//
+//                            // Wait for the process to finish
+//                            int exitCode = process.waitFor();
+//                        } catch (IOException | InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+
                 try {
                     lectura = instream.read();
 
                     datomilivoltios = (lectura * (5.0 / 1024) - 1.5625) / 1.1;
 
+                    numlectura++;
+                    c3--;
 
-                    if (numlectura < 296) {
-                        numlectura++;
-                        ventana1.add(datomilivoltios);
-                        mf1.add(datomilivoltios);
-                    } else {
-                        numlectura = 0;
-                        ventana2.addAll(mf1);
-                        try {
-                            // Set the command to launch Python and execute the script
-                            //TODO script
-                            String listString = null;
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                                listString = mf1.stream().map(Object::toString)
-                                        .collect(Collectors.joining(", "));
-                            }
-                            String scriptPath = "preprocess.py";
-                            String[] command = new String[]{"python", scriptPath, listString};
+                    señal.remove(0);
+                    señal.add(datomilivoltios);
 
-                            // Create a ProcessBuilder object and set the command
-                            ProcessBuilder pb = new ProcessBuilder(command);
+                    if (numlectura > 35) {
+                        ventana1.clear();
+                        ventana1.addAll(señal);
+                        Collections.sort(ventana1);
 
-                            // Start the process
-                            Process process = pb.start();
-
-                            // Read the output from the process
-                            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                            String output = reader.readLine();
-
-                            // Convert the output to a list of integers
-                            output = output.replace('[', ' ');
-                            output = output.replace(']', ' ');
-                            result = null;
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                                result = Arrays.stream(output.split(","))
-                                        .map(String::trim)
-                                        .map(Integer::parseInt)
-                                        .collect(Collectors.toList());
-                            }
-
-                            // Wait for the process to finish
-                            int exitCode = process.waitFor();
-                        } catch (IOException | InterruptedException e) {
-                            e.printStackTrace();
-                        }
+                        mf1.remove(0);
+                        mf1.add(ventana1.get(35));
                     }
 
+                    if (numlectura > 142) {
+                        ventana2.clear();
+                        ventana2.addAll(mf1);
+                        Collections.sort(ventana2);
+
+                        señalf1.remove(0);
+                        señalf1.add(datomilivoltios - (ventana2.get(107)));
+                    }
+
+                    if (numlectura > 144) {
+                        sum = 0;
+
+                        for (i = 0; i < 5; i++) {
+                            sum = sum + señalf1.get(i);
+                        }
+
+                        datofiltrado = sum / 5;
+
+                        señalf2.add(datofiltrado);
+
+                        Intent intent2 = new Intent("info");
+                        intent2.putExtra("datofiltrado", datofiltrado);
+                        getApplicationContext().sendBroadcast(intent2);
+                    }
                     Intent intent2 = new Intent("info");
-                    intent2.putIntegerArrayListExtra("datofiltrado", (ArrayList<Integer>) result);
+                    intent2.putExtra("datofiltrado", datofiltrado);
                     getApplicationContext().sendBroadcast(intent2);
 
+                    if (c3 == 0) {
+                        señallatido.clear();
+                        señallatido.addAll(señalf2.subList(señalf2.size() - 182, señalf2.size() - 1));
+                    }
                 }
+
 
                 catch (IOException e) {
                     handler.post(new Runnable() {
@@ -693,6 +807,30 @@ public class analisisecg extends Service
             }
 
             return null;
+        }
+    }
+
+    public static void sendDataToPairedDevice(String message, BluetoothDevice device, Context context) {
+        byte[] toSend = message.getBytes(Charset.defaultCharset());
+        try {
+            UUID applicationUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
+            Toast.makeText(context, "Se manda msj", Toast.LENGTH_SHORT).show();
+
+            OutputStream mmOutStream = btsocket.getOutputStream();
+            mmOutStream.write(toSend);
+            // Your Data is sent to  BT connected paired device ENJOY.
+        } catch (Exception e) {
+            Toast.makeText(context, "No se pudo iniciar", Toast.LENGTH_SHORT).show();
         }
     }
 }
