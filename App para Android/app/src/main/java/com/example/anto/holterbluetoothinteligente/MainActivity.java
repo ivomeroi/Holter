@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     boolean fp;
     int numsintomas = 0;
+    private long mMillisUntilFinish;
     CountDownTimer countdowntimer;
     CountDownTimer assist;
     SharedPreferences sharedPreferences;
@@ -145,16 +146,17 @@ public class MainActivity extends AppCompatActivity
     public void iniciarPausar(View view) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
         Button boton = (Button) findViewById(R.id.iniciarPausar);
         TextView timer = (TextView) findViewById(R.id.timer);
-
+        String BLUETOOTH_ADDRESS = "00:18:E4:34:C5:45";
+        BluetoothDevice device = btadapter.getRemoteDevice(BLUETOOTH_ADDRESS);
+        Method m = device.getClass().getMethod("isConnected", (Class[]) null);
+        boolean boo = (boolean) m.invoke(device, (Object[]) null);
         if (boton.getText().equals("Pausar")) {
+            countdowntimer.cancel();
             stopService(new Intent(MainActivity.this, analisisecg.class));
             Toast.makeText(this, "Se pausó el análisis", Toast.LENGTH_SHORT).show();
             boton.setText("Reanudar");
-        } else {
-            String BLUETOOTH_ADDRESS = "00:18:E4:34:C5:45";
-            BluetoothDevice device = btadapter.getRemoteDevice(BLUETOOTH_ADDRESS);
-            Method m = device.getClass().getMethod("isConnected", (Class[]) null);
-            boolean boo = (boolean) m.invoke(device, (Object[]) null);
+        } else if (boton.getText().equals("Conectar")){
+
             if (!boo) {
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     // TODO: Consider calling
@@ -166,24 +168,46 @@ public class MainActivity extends AppCompatActivity
                     // for ActivityCompat#requestPermissions for more details.
                     return;
                 }
+                boton.setText("Iniciar");
                 startService(new Intent(MainActivity.this, analisisecg.class));
-            } else {
+            }else{
+                boton.setText("Iniciar");
+
+            }
+            } else if (boton.getText().equals("Iniciar")){
                 boton.setText("Pausar");
-                countdowntimer = new CountDownTimer(10000, 1000) {
+                mMillisUntilFinish = 60000;
+                countdowntimer = new CountDownTimer(mMillisUntilFinish, 1000) {
 
                     public void onTick(long millisUntilFinished) {
                         timer.setText("Tiempo Restante: " + new SimpleDateFormat("mm:ss").format(new Date(millisUntilFinished)));
+                        mMillisUntilFinish = millisUntilFinished;
                     }
 
                     public void onFinish() {
                         finalizar(view);
                     }
                 }.start();
-                stopService(new Intent(MainActivity.this, analisisecg.class));
-                analisisecg.sendDataToPairedDevice("A", device, MainActivity.this);
-                startService(new Intent(MainActivity.this, analisisecg.class));
+            analisisecg.sendDataToPairedDevice("A", device, MainActivity.this);
 
-            }
+
+        } else if (boton.getText().equals("Reanudar")){
+            boton.setText("Pausar");
+            countdowntimer = new CountDownTimer(mMillisUntilFinish, 1000) {
+
+                public void onTick(long millisUntilFinished) {
+                    timer.setText("Tiempo Restante: " + new SimpleDateFormat("mm:ss").format(new Date(millisUntilFinished)));
+                    mMillisUntilFinish = millisUntilFinished;
+                }
+
+                public void onFinish() {
+                    finalizar(view);
+                }
+            }.start();
+            analisisecg.sendDataToPairedDevice("A", device, MainActivity.this);
+            startService(new Intent(MainActivity.this, analisisecg.class));
+
+
         }
     }
 
@@ -191,7 +215,8 @@ public class MainActivity extends AppCompatActivity
         Button boton1 = (Button) findViewById(R.id.finalizar);
         Button boton2 = (Button) findViewById(R.id.iniciarPausar);
         TextView timer = (TextView) findViewById(R.id.timer);
-
+        String BLUETOOTH_ADDRESS = "00:18:E4:34:C5:45";
+        BluetoothDevice device = btadapter.getRemoteDevice(BLUETOOTH_ADDRESS);
         if (boton1.getText().equals("Finalizar")) {
             assist = new CountDownTimer(1, 1) {
 
@@ -215,9 +240,10 @@ public class MainActivity extends AppCompatActivity
             timer.setText("Presione Iniciar");
             boton1.setText("Finalizar");
             boton2.setVisibility(View.VISIBLE);
-            boton2.setText("Iniciar");
-            startService(new Intent(MainActivity.this, analisisecg.class));
+            boton2.setText("Conectar");
         }
+        analisisecg.sendDataToPairedDevice("Z", device, MainActivity.this);
+
     }
 
     @Override

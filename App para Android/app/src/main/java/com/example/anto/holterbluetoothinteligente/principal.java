@@ -7,7 +7,9 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import androidx.fragment.app.Fragment;
 import androidx.core.content.ContextCompat;
@@ -26,12 +28,16 @@ import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class principal extends Fragment {
     double datomilivoltios;
     double dato;
     double i = 0;
-    double periodo = 0.002761;
+    double periodo = 0.02761;
     long tiempo = System.currentTimeMillis();
     //double periodo = 0;
 
@@ -128,7 +134,7 @@ public class principal extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             datomilivoltios = intent.getDoubleExtra("datofiltrado", 0);
-            dato = datomilivoltios;
+            dato = datomilivoltios-0.5;
 
             if (i > 2) {
                 i = 0;
@@ -140,8 +146,25 @@ public class principal extends Fragment {
 
             i = i + periodo;
 
-//            ArrayList<Integer> datomilivoltios = intent.getIntegerArrayListExtra("datofiltrado");
-//            for(Integer dato : datomilivoltios) {
+//            Stream<String> result;
+//            String listString = intent.getStringExtra("datofiltrado");
+//            listString = listString.replace('[', ' ');
+//            listString = listString.replace(']', ' ');
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+//                result = Arrays.stream(listString.split(","));
+//                Handler handler = new Handler();
+//                Stream<String> finalResult = result;
+//                String finalListString = listString;
+//                handler.post(new Runnable() {
+//                    public void run() {
+//                        Toast.makeText(context.getApplicationContext(), "Awa " + finalListString, Toast.LENGTH_SHORT).show();
+//                    }
+//                });
+//            }
+
+//
+//            //ArrayList<Integer> datomilivoltios = intent.getIntegerArrayListExtra("datofiltrado");
+//            for(Integer dato : result) {
 //                if (i > 2) {
 //                    i = 0;
 //                    data.clear();

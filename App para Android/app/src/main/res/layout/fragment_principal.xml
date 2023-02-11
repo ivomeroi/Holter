@@ -44,7 +44,7 @@
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
             android:backgroundTint="@color/colorAccent"
-            android:text="Iniciar"
+            android:text="Conectar"
             android:onClick="iniciarPausar"/>
 
         <Button

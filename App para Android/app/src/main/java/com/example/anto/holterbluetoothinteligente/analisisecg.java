@@ -363,13 +363,13 @@ public class analisisecg extends Service
 
         if(!boo){
             new Thread(new conectar(device)).start();
-            googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
-                    .addApi(ActivityRecognition.API)
-                    .addConnectionCallbacks(this)
-                    .build();
-
-            googleApiClient.connect();
         }
+        googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
+                .addApi(ActivityRecognition.API)
+                .addConnectionCallbacks(this)
+                .build();
+
+        googleApiClient.connect();
 
 //        googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
 //                .addApi(ActivityRecognition.API)
@@ -391,23 +391,23 @@ public class analisisecg extends Service
 
     public void onDestroy() {
         super.onDestroy();
-        //servicioactivo = false;
+        servicioactivo = false;
 
-//        if (instream != null) {
-//            try {
-//                instream.close();
-//            } catch (Exception e) {
-//            }
-//            instream = null;
-//        }
+        if (instream != null) {
+            try {
+                instream.close();
+            } catch (Exception e) {
+            }
+            instream = null;
+        }
 
-//        if (btsocket != null) {
-//            try {
-//                btsocket.close();
-//            } catch (Exception e) {
-//            }
-//            btsocket = null;
-//        }
+        if (btsocket != null) {
+            try {
+                btsocket.close();
+            } catch (Exception e) {
+            }
+            btsocket = null;
+        }
 
         unregisterReceiver(alarmReceiver1);
 
@@ -538,67 +538,70 @@ public class analisisecg extends Service
 
         public void run() {
             while (servicioactivo) {
-//                try {
-//
+                //try {
+
 //                    lectura = instream.read();
 //
 //                    datomilivoltios = (lectura * (5.0 / 1024) - 1.5625) / 1.1;
 //
 //
-//                    if (numlectura < 3) {
+//                    if (numlectura < 40) {
 //                        numlectura++;
 //                        ventana1.add(datomilivoltios);
 //                        mf1.add(datomilivoltios);
 //                    } else {
 //                        numlectura = 0;
-//                        ventana2.addAll(mf1);
-//                        try {
-//                            // Set the command to launch Python and execute the script
-//                            //TODO script
-//                            String listString = null;
-//                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-//                                listString = mf1.stream().map(Object::toString)
-//                                        .collect(Collectors.joining(", "));
-//                            }
-//                            String scriptPath = "preprocess.py";
-//                            String[] command = new String[]{"python", scriptPath, listString};
-//
-//                            // Create a ProcessBuilder object and set the command
-//                            ProcessBuilder pb = new ProcessBuilder(command);
-//
-//                            // Start the process
-//                            Process process = pb.start();
-//
-//                            // Read the output from the process
-//                            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-//                            String output = reader.readLine();
-//
-//                            // Convert the output to a list of integers
-//                            output = output.replace('[', ' ');
-//                            output = output.replace(']', ' ');
-//                            result = null;
-//                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-//                                result = Arrays.stream(output.split(","))
-//                                        .map(String::trim)
-//                                        .map(Integer::parseInt)
-//                                        .collect(Collectors.toList());
-//                            }
-//                            Intent intent2 = new Intent("info");
-//                            intent2.putIntegerArrayListExtra("datofiltrado", (ArrayList<Integer>) result);
-//                            getApplicationContext().sendBroadcast(intent2);
-//
-//                            // Wait for the process to finish
-//                            int exitCode = process.waitFor();
-//                        } catch (IOException | InterruptedException e) {
-//                            e.printStackTrace();
+//                        ventana2.addAll(ventana1);
+//                        // Set the command to launch Python and execute the script
+//                        //TODO script
+//                        String listString = null;
+//                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+//                            listString = ventana1.stream().map(Object::toString)
+//                                    .collect(Collectors.joining(", "));
 //                        }
-//                    }
-//                }
+//                        ventana1.clear();
+//                        String scriptPath = "preprocess.py";
+//                        String[] command = new String[]{"python", scriptPath, listString};
+//
+//                        // Create a ProcessBuilder object and set the command
+//                        ProcessBuilder pb = new ProcessBuilder(command);
+//
+//                        // Start the process
+//                        Process process = pb.start();
+//
+//                        // Read the output from the process
+//                        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+//                        String output = reader.readLine();
+//
+//                        // Convert the output to a list of integers
+//                        listString = listString.replace('[', ' ');
+//                        listString = listString.replace(']', ' ');
+//                        result = null;
+//                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+//                            result = Arrays.stream(listString.split(","))
+//                                    .map(String::trim)
+//                                    .map(Integer::parseInt)
+//                                    .collect(Collectors.toList());
+//                        }
+//                        Intent intent2 = new Intent("info");
+//                        intent2.putExtra("datofiltrado", listString);
+//                        getApplicationContext().sendBroadcast(intent2);
+//                        String finalListString = listString;
+//                        handler.post(new Runnable() {
+//                             public void run() {
+//                                 Toast.makeText(getApplicationContext(), "Awa " + result, Toast.LENGTH_SHORT).show();
+//                             }
+//                        });
+
+                        // Wait for the process to finish
+                        //int exitCode = process.waitFor();
+                  //  }
+                //}
 
                 try {
                     lectura = instream.read();
 
-                    datomilivoltios = (lectura * (5.0 / 1024) - 1.5625) / 1.1;
+                    datomilivoltios = (lectura * (5.0 / 1024)) * (-10);
 
                     numlectura++;
                     c3--;
@@ -639,9 +642,9 @@ public class analisisecg extends Service
                         intent2.putExtra("datofiltrado", datofiltrado);
                         getApplicationContext().sendBroadcast(intent2);
                     }
-                    Intent intent2 = new Intent("info");
-                    intent2.putExtra("datofiltrado", datofiltrado);
-                    getApplicationContext().sendBroadcast(intent2);
+//                    Intent intent2 = new Intent("info");
+//                    intent2.putExtra("datofiltrado", datofiltrado);
+//                    getApplicationContext().sendBroadcast(intent2);
 
                     if (c3 == 0) {
                         señallatido.clear();
