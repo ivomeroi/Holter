@@ -1,20 +1,19 @@
 package com.example.anto.holterbluetoothinteligente;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.preference.PreferenceManager;
-import com.google.android.material.navigation.NavigationView;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.fragment.app.Fragment;
-import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,16 +25,37 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+
+import com.google.android.material.navigation.NavigationView;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Set;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     boolean fp;
     int numsintomas = 0;
+    CountDownTimer countdowntimer;
+    CountDownTimer assist;
     SharedPreferences sharedPreferences;
     SharedPreferences.Editor editor;
     TableLayout tabla;
     BluetoothAdapter btadapter = BluetoothAdapter.getDefaultAdapter();
+    private static final String BLUETOOTH_ADDRESS = "00:18:E4:34:C5:45"; // Replace with your HC-05's Bluetooth address
+    private static final String BLUETOOTH_URL = "btspp://" + BLUETOOTH_ADDRESS + ":1;authenticate=false;encrypt=false;master=false";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,8 +91,7 @@ public class MainActivity extends AppCompatActivity
         } else {
             if (fp) {
                 MainActivity.this.moveTaskToBack(true);
-            }
-            else {
+            } else {
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new principal()).commit();
                 fp = true;
                 getSupportActionBar().setTitle(getString(R.string.principal));
@@ -98,35 +117,15 @@ public class MainActivity extends AppCompatActivity
         Fragment fragment = null;
         String title = "";
 
-        switch(itemnum) {
+        switch (itemnum) {
             case 1:
                 fragment = new principal();
                 fp = true;
                 title = getString(R.string.principal);
                 break;
             case 2:
-                fragment = new latidos();
-                fp = false;
-                title = getString(R.string.latidos);
-                break;
-            case 3:
-                fragment = new fc();
-                title = getString(R.string.fc);
-                fp = false;
-                break;
-            case 4:
                 fragment = new resumen();
                 title = getString(R.string.resumen);
-                fp = false;
-                break;
-            case 5:
-                fragment = new historialalertas();
-                title = getString(R.string.ha);
-                fp = false;
-                break;
-            case 6:
-                fragment = new no_diariosintomas();
-                title = getString(R.string.sintomas);
                 fp = false;
                 break;
             case 7:
@@ -140,44 +139,89 @@ public class MainActivity extends AppCompatActivity
         getSupportActionBar().setTitle(title);
     }
 
-    public void pausar(View view) {
-        Button boton = (Button) findViewById(R.id.pausar);
+    public void iniciarPausar(View view) {
+        Button boton = (Button) findViewById(R.id.iniciarPausar);
+        TextView timer = (TextView) findViewById(R.id.timer);
 
         if (boton.getText().equals("Pausar")) {
             stopService(new Intent(MainActivity.this, analisisecg.class));
             Toast.makeText(this, "Se pausó el análisis", Toast.LENGTH_SHORT).show();
             boton.setText("Reanudar");
-        }
-        else {
+        } else {
             boton.setText("Pausar");
 
             if (!btadapter.isEnabled()) {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
                 startActivityForResult(enableBtIntent, 1);
-            }
-            else {
+            } else {
                 startService(new Intent(this, analisisecg.class));
+                String deviceName = "HC-05";
+
+                BluetoothDevice result = null;
+
+                Set<BluetoothDevice> devices = btadapter.getBondedDevices();
+                if (devices != null) {
+                    for (BluetoothDevice device : devices) {
+                        if (deviceName.equals(device.getName())) {
+                            result = device;
+                            break;
+                        }
+                    }
+                }
+                sendDataToPairedDevice("A" ,result);
             }
+
+
+
+            countdowntimer = new CountDownTimer(10000, 1000) {
+
+                public void onTick(long millisUntilFinished) {
+                    timer.setText("Tiempo Restante: " + new SimpleDateFormat("mm:ss").format(new Date(millisUntilFinished)));
+                }
+
+                public void onFinish() {
+                    finalizar(view);
+                }
+            }.start();
         }
     }
 
     public void finalizar(View view) {
         Button boton1 = (Button) findViewById(R.id.finalizar);
-        Button boton2 = (Button) findViewById(R.id.pausar);
+        Button boton2 = (Button) findViewById(R.id.iniciarPausar);
+        TextView timer = (TextView) findViewById(R.id.timer);
 
         if (boton1.getText().equals("Finalizar")) {
+            assist = new CountDownTimer(1, 1) {
+
+                public void onTick(long millisUntilFinished) {
+                    countdowntimer.cancel();
+                }
+
+                public void onFinish() {
+                    countdowntimer.cancel();
+                }
+            }.start();
+            timer.setText("Listo!");
+
             stopService(new Intent(MainActivity.this, analisisecg.class));
             Toast.makeText(this, "Se detuvo el análisis", Toast.LENGTH_SHORT).show();
             boton1.setText("Reiniciar");
             boton2.setVisibility(View.GONE);
-        }
-        else {
-            editor.clear();
-            editor.putBoolean("mostrarinicio", true);
-            editor.apply();
-            Intent intent = new Intent(getApplicationContext(), inicio1.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-            startActivity(intent);
+
+
+        } else {
+            startService(new Intent(MainActivity.this, analisisecg.class));
         }
     }
 
@@ -193,7 +237,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    public void agregar (View view) {
+    public void agregar(View view) {
         tabla = (TableLayout) findViewById(R.id.tabla4);
 
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
@@ -250,5 +294,28 @@ public class MainActivity extends AppCompatActivity
                 });
 
         alertDialog.show();
+    }
+
+    private void sendDataToPairedDevice(String message, BluetoothDevice device) {
+        byte[] toSend = message.getBytes();
+        try {
+            UUID applicationUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
+            BluetoothSocket socket = device.createInsecureRfcommSocketToServiceRecord(applicationUUID);
+            OutputStream mmOutStream = socket.getOutputStream();
+            mmOutStream.write(toSend);
+            // Your Data is sent to  BT connected paired device ENJOY.
+        } catch (IOException e) {
+            Toast.makeText(this, "No se pudo iniciar", Toast.LENGTH_SHORT).show();
+        }
     }
 }

@@ -24,6 +24,8 @@ import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 
+import java.util.ArrayList;
+
 public class principal extends Fragment {
     double datomilivoltios;
     double dato;
@@ -100,7 +102,7 @@ public class principal extends Fragment {
         v2.addView(grafico);
 
         Button boton1 = (Button) v.findViewById(R.id.finalizar);
-        Button boton2 = (Button) v.findViewById(R.id.pausar);
+        Button boton2 = (Button) v.findViewById(R.id.iniciarPausar);
 
         if (sharedPreferences.getBoolean("terminado", false)) {
             boton1.setVisibility(View.VISIBLE);
@@ -124,18 +126,18 @@ public class principal extends Fragment {
     private BroadcastReceiver recibirinfo = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            datomilivoltios = intent.getDoubleExtra("datofiltrado", 0);
-            dato = datomilivoltios;
+            ArrayList<Integer> datomilivoltios = intent.getIntegerArrayListExtra("datofiltrado");
+            for(Integer dato : datomilivoltios) {
+                if (i > 2) {
+                    i = 0;
+                    data.clear();
+                }
 
-            if (i > 2) {
-                i = 0;
-                data.clear();
+                data.add(i, dato);
+                grafico.repaint();
+
+                i = i + periodo;
             }
-
-            data.add(i, dato);
-            grafico.repaint();
-
-            i = i + periodo;
         }
     };
 }

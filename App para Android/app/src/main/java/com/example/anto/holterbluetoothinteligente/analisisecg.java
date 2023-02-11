@@ -10,20 +10,41 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.IntentSender;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
+import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.database.DatabaseErrorHandler;
+import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.UserHandle;
 import android.preference.PreferenceManager;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+
 import android.telephony.SmsManager;
+import android.view.Display;
 import android.widget.Toast;
 
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
@@ -36,6 +57,9 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,6 +69,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import java.util.concurrent.ExecutorService;
@@ -58,9 +83,12 @@ public class analisisecg extends Service
     Handler handler = new Handler();
     BluetoothAdapter btadapter = BluetoothAdapter.getDefaultAdapter();
     BluetoothDevice device;
-    BluetoothSocket btsocket;
-    InputStream instream;
-    boolean encontrado = false, servicioactivo = false, taquiant = false, bradiant = false;
+    static BluetoothSocket btsocket;
+    static InputStream instream;
+    boolean encontrado = false;
+    static boolean servicioactivo = false;
+    boolean taquiant = false;
+    boolean bradiant = false;
     static int tamañoentrada = 13, tamañocapaoculta = 44, tamañosalida = 4;
     ArrayList<Double> señalf2 = new ArrayList<>();
     ArrayList<Integer> qrs = new ArrayList<>(), qrssintomas = new ArrayList<>();
@@ -90,7 +118,7 @@ public class analisisecg extends Service
             {0.2052627582218552, 0.1940121446665480, 0.1815180113305505, 0.1678569794840900, 0.1531797036423959, 0.1378905228435462, 0.1218621847111718, 0.1047960341046735, 0.0870763930140107, 0.0687835011096276, 0.0501317194278926, 0.0311691746673975, 0.0121317752684524, -0.0071652637560533, -0.0262065943087644, -0.0446130175566606, -0.0618214300652117, -0.0777511393261150, -0.0920635430339291, -0.1043323826580503, -0.1145866807850212, -0.1225513597009661, -0.1285164580400422, -0.1320765720275302, -0.1338573017463116, -0.1335772490529209, -0.1310652320923983, -0.1258946698079406, -0.1181551845567190, -0.1070232146514645, -0.0927831026764352, -0.0755989376182005, -0.0556036389523192, -0.0336671133197045, -0.0111699447866542, 0.0119774915066383, 0.0352954653508240, 0.0580022183939266, 0.0797467505180712, 0.1001390356808124, 0.1177548535495229, 0.1323298025589061, 0.1434892659527844, 0.1507736847030224, 0.1533708987511854, 0.1509648601083388, 0.1426501760631872, 0.1281261168497412, 0.1076009873166460, 0.0827486051986416, 0.0561795320159995, 0.0294337540556693, 0.0041371827695359, -0.0187682697661525, -0.0392416681887737, -0.0574111563667484, -0.0728203911093745, -0.0854122825490411, -0.0952712005917578, -0.1019272808238775, -0.1053451515525541, -0.1046426143440385, -0.0992378982291370, -0.0886261798682436, -0.0736855389193699, -0.0554102231222972, -0.0355069825438218, -0.0151055516779933, 0.0046659624576887, 0.0233202752591298, 0.0402189835588892, 0.0549034782951885, 0.0668226270085032, 0.0754367872303958, 0.0797124903437030, 0.0785050293817541, 0.0702047270401510, 0.0534595349522156, 0.0290999217778489, 0.0016735813672788, -0.0225435745752251, -0.0392975648881812, -0.0468329351599042, -0.0452960951859338, -0.0369508728025164, -0.0256408775290255, -0.0138446632783614, -0.0021153800938709, 0.0091620021661769, 0.0185460207694792, 0.0245144326870092, 0.0259971673222228, 0.0221567012276504, 0.0127673998423103, -0.0015591193932815, -0.0193634879671635, -0.0380302025527722, -0.0547167106338987, -0.0678449423231138, -0.0768706696018428, -0.0815055027306136, -0.0816791274809476, -0.0778800088226842, -0.0710788471722812, -0.0621854380466194, -0.0520122140767782, -0.0412935053042467, -0.0304690961230097, -0.0196315001067234, -0.0087598605438064, 0.0023055632164835, 0.0135679986913940, 0.0248538761058896, 0.0358336343743749, 0.0461632563277886, 0.0553420906832929, 0.0631094721565807, 0.0692364263711030, 0.0735654251289730, 0.0757448707218727, 0.0754661562862749, 0.0726481942925002, 0.0677898309163096, 0.0613913078519264, 0.0542454162970080, 0.0470965899295699, 0.0402580503991968, 0.0336299111157491, 0.0270416737634748, 0.0203051384854557, 0.0131894530913134, 0.0055772856149065, -0.0026085062115193, -0.0113063264268210, -0.0203491257206125, -0.0293121328989644, -0.0377891051403647, -0.0454291841418429, -0.0518902779180541, -0.0571658241754091, -0.0612321272171452, -0.0642759071095891, -0.0663591817110744, -0.0676565705102926, -0.0684073737258354, -0.0688227149939023, -0.0688705919124202, -0.0685685715610909, -0.0679620467634847, -0.0668455502839108, -0.0651625417388779, -0.0627700871060662, -0.0596806920465357, -0.0559460962896373, -0.0516696514428160, -0.0470394664785341, -0.0421674652293368, -0.0370126197943260, -0.0315340086932427, -0.0257433620169502, -0.0197468078408391, -0.0134691035382215, -0.0071547285803997, -0.0008461294514585, 0.0055179782507368, 0.0120357509293505, 0.0184943419837135, 0.0248499042188873, 0.0310459445890589, 0.0369860560814727, 0.0426625490872852, 0.0480109219843893, 0.0529521948483326, 0.0574232763123045, 0.0614089327788430, 0.0647256632927002, 0.0673714935864692, 0.0693889364994564, 0.0706734578366668, 0.0710712421555339, 0.0706792942859031},
             {0.0365459166661544, 0.0349694040400830, 0.0331752905291597, 0.0311380300018954, 0.0287021171030141, 0.0258914910226793, 0.0226173893400260, 0.0192474990882448, 0.0156176503362013, 0.0115286477719684, 0.0069426344968598, 0.0016933136874504, -0.0042446732093635, -0.0106559499027018, -0.0171925467603581, -0.0235632567718023, -0.0296650837958355, -0.0352485080553927, -0.0400208504461855, -0.0437522717315088, -0.0465681775547607, -0.0482061537047892, -0.0486723256023780, -0.0480561298756357, -0.0466829124182509, -0.0445643819091805, -0.0419194277696562, -0.0388421690173670, -0.0349614554473995, -0.0295829705609481, -0.0227825662693793, -0.0136560883179997, -0.0030012145087082, 0.0081412205313560, 0.0184291588892602, 0.0282574237222526, 0.0371287738315601, 0.0455016961739276, 0.0535141695138137, 0.0615353639850591, 0.0692362920186048, 0.0758655126479901, 0.0814838960821589, 0.0856191390661602, 0.0880868292800840, 0.0882262484826722, 0.0864635592288816, 0.0827466420765909, 0.0766829761732954, 0.0682492196670256, 0.0575093123625811, 0.0446911699746005, 0.0302275562377817, 0.0154417927671177, 0.0012662694186648, -0.0120924345261716, -0.0249983527661533, -0.0372851249434237, -0.0485579998491022, -0.0595003817041874, -0.0694443184946044, -0.0778232683334003, -0.0852466574918787, -0.0909813275395619, -0.0934565590346449, -0.0924904279720100, -0.0879288058601616, -0.0803250357704600, -0.0704258773131771, -0.0586892859128385, -0.0449365656745263, -0.0292930808977846, -0.0113425082107268, 0.0090296540814233, 0.0312186230720101, 0.0553249885013193, 0.0821384334827787, 0.1110336445022915, 0.1376487996536755, 0.1542155882521302, 0.1535324465778146, 0.1328885703732902, 0.0941522539761789, 0.0429851390609544, -0.0107939417691057, -0.0580833582815075, -0.0969696192122907, -0.1306050678276558, -0.1611087646655600, -0.1874347009439240, -0.2067932359964524, -0.2155298255142947, -0.2095675141692261, -0.1856510776995010, -0.1420956303553128, -0.0818073477149216, -0.0140452295680089, 0.0489277924265969, 0.0980497869431339, 0.1291636694187223, 0.1426414200787408, 0.1418325789892258, 0.1318311723933678, 0.1177516905633146, 0.1032903590662301, 0.0902750249369508, 0.0788387814381995, 0.0678647270085757, 0.0556535944984012, 0.0406919313016908, 0.0222179152330099, 0.0007015787015035, -0.0224989243251269, -0.0453524878144452, -0.0659554342364148, -0.0829992922404135, -0.0960175653089011, -0.1048990721820309, -0.1097618035125732, -0.1106052612830430, -0.1072164710276064, -0.0999351642864214, -0.0897606706539321, -0.0779511153290014, -0.0660449610900659, -0.0553723537884073, -0.0464715176506168, -0.0393769599085104, -0.0338756241902093, -0.0294568539148412, -0.0257496808081038, -0.0224103863477825, -0.0189291155992210, -0.0147472672420233, -0.0095388191653620, -0.0031537790240911, 0.0043628272445456, 0.0126610801719932, 0.0211022164635110, 0.0292619148053846, 0.0367739859627046, 0.0435188515420704, 0.0492718339805550, 0.0540415224398392, 0.0576718871513306, 0.0603562065332336, 0.0620680967666057, 0.0628161199727449, 0.0625361606973381, 0.0615368215059124, 0.0596673994652113, 0.0570559287643197, 0.0538242308513731, 0.0500698077611773, 0.0455435896612035, 0.0404437862287763, 0.0348071342761031, 0.0286995332035834, 0.0221844641510672, 0.0154701884507313, 0.0085876554565100, 0.0015193069943914, -0.0055193475605930, -0.0124881701215761, -0.0195201057567607, -0.0265700361878204, -0.0335072729944330, -0.0403447265507803, -0.0472188996468237, -0.0541434601820096, -0.0610663916382295, -0.0681301093482860, -0.0753195494810629, -0.0823759033071300, -0.0890412316583921, -0.0952540614675074, -0.1008074379002187, -0.1057757763906938, -0.1102571725075044, -0.1142283844159273, -0.1175013082835427}};
 
-    static Double [][] pesos1 = {{-1.7571456642038517, -0.0506072381677040, 0.0106783214956464, -0.0247518102043067, -0.0355488387911637, 0.1913883479427403, 0.1177214531910732, -0.2005154025969564, 0.0116498252770900, 0.1256587650789268, -0.3964120248350858, 0.1791418607844130, -0.0138396726040856, -0.0149119196995780},
+    static Double[][] pesos1 = {{-1.7571456642038517, -0.0506072381677040, 0.0106783214956464, -0.0247518102043067, -0.0355488387911637, 0.1913883479427403, 0.1177214531910732, -0.2005154025969564, 0.0116498252770900, 0.1256587650789268, -0.3964120248350858, 0.1791418607844130, -0.0138396726040856, -0.0149119196995780},
             {-2.6018206691453640, 0.0083616197188330, -0.0097131823166908, 0.0081546597183160, 0.0185738311379653, -0.0109282729372399, -0.0261498674320351, -0.0021350293560421, 0.0275705554085151, 0.0543684727816393, 0.0192693052583969, 0.0798341966731226, 0.1049099070080843, 0.0931702977681032},
             {1.9605765578537262, 0.0782830927985487, -0.0494644045161830, 0.0920717327013272, 0.0712843256074451, -0.2018933866391847, -0.2303672847988239, 0.0671702652185037, 0.1051536599315932, 0.0015909350243258, 0.2184325880948236, -0.1211136707327080, 0.0296494501856826, -0.0200949219150671},
             {2.6840495477661119, -0.0039308403567582, -0.0219586296568014, 0.0155991373003169, 0.0205600069580596, 0.0185171813376864, 0.0457962604678446, -0.0114682382690931, -0.0313178970200333, 0.0114958347357935, 0.0182154538374044, -0.0009341025606912, -0.0156248006527299, -0.1281727135422218},
@@ -135,7 +163,7 @@ public class analisisecg extends Service
             {1.3197159810033132, -0.6209710195525983, 0.5171586015387126, 0.1024991749694247, 0.0745176946474380, 0.2480652957292561, -0.5966601865204104, 0.5830863691022857, 0.0168403230835500, -0.4929605700949338, 0.0939970967016684, -0.1307101174366560, 0.1821730660368923, -0.2032858382179388},
             {-1.5255432119568153, -0.0134835512043569, -0.0254865823790546, -0.0881576079039040, 0.0779593878171010, 0.2153811467148374, 0.1357250889483507, -0.1638386875053267, -0.0071959554466436, 0.1726229754916361, -0.1912283195508189, -0.2386373340815114, 0.1689401585526049, -0.3528775233988535}};
 
-    static Double [][] pesos2 = {{0.3753333454537803, -0.1261574629304309, 0.2846392366414537, 0.5502551077318125, 0.7412188291161278, -1.0489797700969843, 1.0392871940548876, 1.4307641620187093, -0.1094074905679382, -1.3405806899754973, 1.5703815529043748, -0.2377681568721118, -0.9556243254732489, 0.6122092205243770, 0.5952781020577858, -0.9077691231954026, -0.4839129461640419, 0.9543651798616479, 0.8225564053215050, 1.0617868158264820, 0.3761754000998038, -1.8754556291907449, -1.8346006212490220, -0.5359480028402157, 1.5953020888018026, 0.9785314890776312, -0.5397334205527410, 1.3074200338444637, -1.5541671504353562, 0.8792057093930588, 0.1656660819764425, -1.2611264842783159, 1.7556014283723262, -0.8461982978174663, 1.4300820951202180, 1.2413741835199534, 0.8277924015624634, 0.5927549145948959, -0.3127085995418644, 0.1193526997903892, 0.4585780238767165, 0.1589768107665744, 1.4095336868064348, -0.6707040248762107, 0.3619644061644658},
+    static Double[][] pesos2 = {{0.3753333454537803, -0.1261574629304309, 0.2846392366414537, 0.5502551077318125, 0.7412188291161278, -1.0489797700969843, 1.0392871940548876, 1.4307641620187093, -0.1094074905679382, -1.3405806899754973, 1.5703815529043748, -0.2377681568721118, -0.9556243254732489, 0.6122092205243770, 0.5952781020577858, -0.9077691231954026, -0.4839129461640419, 0.9543651798616479, 0.8225564053215050, 1.0617868158264820, 0.3761754000998038, -1.8754556291907449, -1.8346006212490220, -0.5359480028402157, 1.5953020888018026, 0.9785314890776312, -0.5397334205527410, 1.3074200338444637, -1.5541671504353562, 0.8792057093930588, 0.1656660819764425, -1.2611264842783159, 1.7556014283723262, -0.8461982978174663, 1.4300820951202180, 1.2413741835199534, 0.8277924015624634, 0.5927549145948959, -0.3127085995418644, 0.1193526997903892, 0.4585780238767165, 0.1589768107665744, 1.4095336868064348, -0.6707040248762107, 0.3619644061644658},
             {0.0119436178726280, -1.2108935571761368, -0.2692983226577392, 0.5737551811431442, 1.1044970833098280, 1.3552065031421865, 0.5804383004446214, 0.9646285716876286, -1.4101879925277154, 0.9960690537850072, -1.1265615631101622, 0.5954810602598741, 0.0781204405125188, -0.2019503821833736, 0.0399522077757836, 0.1574527474364443, -1.1727561443200927, -1.6881349578663640, -1.2855382075710566, -0.6005705806552615, -1.4833480711431748, 0.8440987448869386, 0.2136318937037381, 1.2525296230781360, 0.3415266452407298, -0.0904103880549738, 0.2399394681342091, -0.2441858832570301, 0.6118255887963363, -0.3244715296346942, -0.2486378453882945, 1.3650487581395787, -0.5167398177191022, -1.1660614563965372, 0.1971314314209320, 0.1450083929148696, -1.0357520389668828, -0.3928642599384840, 0.6865848252741754, -0.0836489891292809, 1.7805781735432455, 1.1620905604981917, 0.6482915217611717, -1.1585629107859445, -0.2081342426058821},
             {-0.9546843623408160, -0.4132075924893053, 0.5304414049170731, -0.8070311413022759, -0.0288356247849714, -0.6453909462903292, -0.4146216579659752, -1.6652833791131412, 0.3426964677710806, -0.7358766749894787, -1.2781697929731424, 0.3910188251862868, 1.2279909937567091, 0.7132818047299253, -1.3223027386891693, 0.7657196280143168, 0.3790529213119204, 0.2198528152731740, 0.8203360125980560, -1.1025477733049798, 0.6088047923736198, 1.2944756577785927, -0.0528789438232088, 1.5490655127808728, -0.9939668809744479, 0.1841464083962945, -0.0497810212095870, 1.2668519385262580, -1.0562689490822079, -0.9021116854886634, -0.7822141385722358, 1.4400794498094578, 1.2178969816578196, 0.8940914308242242, -1.7188133570120856, -0.3304304114725103, 0.6062674894053833, -1.2691090156427822, -1.6997464780189515, 1.6627059580575896, -1.1514861982926252, -1.2125161476309212, -0.9956868183003435, 0.1328413160800381, 1.0020806610826851},
             {0.1496122342637503, 0.4673747112264909, -0.3025078900253057, -1.1522357851959981, -0.3269454612474377, 0.5495046329095324, 0.8028925342688047, 1.0357348183722301, -0.5992094112390675, -0.9221025722520447, -0.4334757090817230, -0.5927264778154459, 0.1702070218548127, 0.5409249500818815, 0.0592837223238708, -0.3936021170736710, 1.3496092537630289, -0.2091558639502194, 0.0727128042521158, 1.4766225917837843, 1.2051387071742399, 1.4781430286580091, -0.4500589088227016, -1.3000018515408891, 0.2821848493124070, 1.3554763040981415, 0.9287727984476711, -1.4242641044571087, -0.4873250795650806, -0.6826967334326937, -0.8589649120968725, -1.2837057246636674, 0.7580993509558939, 1.1904723098633325, 0.4536584998741539, -0.8876500723149585, -0.8021909441093132, 0.7061730121039350, 0.9917509318600656, 0.0953626490433567, -0.1351556563376591, 0.3123172526581871, 0.1624367560826856, 1.3654204671079324, 0.4088758138907886}};
@@ -149,18 +177,59 @@ public class analisisecg extends Service
 
             if ((BluetoothDevice.ACTION_FOUND).equals(action)) {
                 device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                Toast.makeText(getApplicationContext(), "Encontro " + device.getName(), Toast.LENGTH_SHORT).show();
 
-                if (device.getName().equals("Holter Bluetooth Inteligente")) {
+                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                if (device.getName().equals("HC-05")) {
+                    Toast.makeText(getApplicationContext(), "Conectado", Toast.LENGTH_SHORT).show();
                     encontrado = true;
                     new Thread(new conectar(device)).start();
+                } else {
+                    Toast.makeText(getApplicationContext(), "Conectado a " + device.getName(), Toast.LENGTH_SHORT).show();
                 }
-            }
-
-            else if ((BluetoothAdapter.ACTION_DISCOVERY_FINISHED).equals(action)) {
+            } else if ((BluetoothAdapter.ACTION_DISCOVERY_FINISHED).equals(action)) {
                 if (!encontrado) {
-                    Toast.makeText(getApplicationContext(), "Dispositivo no encontrado", Toast.LENGTH_LONG).show();
-                    stopSelf();
+                    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+                        return;
+                    }
+
                 }
+            } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+
+                for (BluetoothDevice bt : pairedDevices)
+                    if (device.getName().equals("HC-05")) {
+                        Toast.makeText(getApplicationContext(), "Dispositivo no encontrado conectar", Toast.LENGTH_LONG).show();
+                        new Thread(new conectar(device)).start();
+                    }
+                Toast.makeText(getApplicationContext(), "Dispositivo no encontrado", Toast.LENGTH_LONG).show();
             }
         }
     };
@@ -232,7 +301,6 @@ public class analisisecg extends Service
     };
 
 
-
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -242,6 +310,7 @@ public class analisisecg extends Service
         super.onCreate();
 
         servicioactivo = true;
+        Toast.makeText(getApplicationContext(), "Dispositivo no encontrado conectar", Toast.LENGTH_LONG).show();
 
         registerReceiver(alarmReceiver1, new IntentFilter("alarma1"));
 
@@ -265,10 +334,28 @@ public class analisisecg extends Service
         editor.apply();
 
         Toast.makeText(getApplicationContext(), "Buscando...", Toast.LENGTH_SHORT).show();
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        registerReceiver(buscar, filter);
-        btadapter.startDiscovery();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            Toast.makeText(getApplicationContext(), "Se murio..." + PackageManager.PERMISSION_GRANTED, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+        for (BluetoothDevice bt : pairedDevices) {
+            if (bt.getName().equals("HC-05")) {
+                Toast.makeText(getApplicationContext(), "Dispositivo no encontrado conectar", Toast.LENGTH_LONG).show();
+
+                new Thread(new conectar(bt)).start();
+            }
+        }
+        Toast.makeText(getApplicationContext(), "Dispositivo no encontrado", Toast.LENGTH_LONG).show();
 
         googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
                 .addApi(ActivityRecognition.API)
@@ -293,12 +380,18 @@ public class analisisecg extends Service
         servicioactivo = false;
 
         if (instream != null) {
-            try {instream.close();} catch (Exception e) {}
+            try {
+                instream.close();
+            } catch (Exception e) {
+            }
             instream = null;
         }
 
         if (btsocket != null) {
-            try {btsocket.close();} catch (Exception e) {}
+            try {
+                btsocket.close();
+            } catch (Exception e) {
+            }
             btsocket = null;
         }
 
@@ -312,28 +405,26 @@ public class analisisecg extends Service
 
     private class conectar implements Runnable {
         public conectar(BluetoothDevice device) {
-            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+//            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+//
+//
+//            try {
+//                btsocket = device.createRfcommSocketToServiceRecord(uuid);
+//            } catch (IOException e) {
+//                btsocket = null;
+//
+//            }
+            Toast.makeText(analisisecg.this, "Pre socket", Toast.LENGTH_SHORT).show();
 
-            try {
-                btsocket = device.createRfcommSocketToServiceRecord(uuid);
-            } catch (IOException e) {
-                btsocket = null;
-
-            }
         }
 
 
         public void run() {
             try {
-                btadapter.cancelDiscovery();
                 btsocket.connect();
             } catch (IOException connectException) {
                 try {
-                    handler.post(new Runnable() {
-                        public void run() {
-                            Toast.makeText(getApplicationContext(), "Falló la conexión", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                    handler.post(() -> Toast.makeText(getApplicationContext(), "Falló la conexión", Toast.LENGTH_SHORT).show());
 
                     btsocket.close();
                 } catch (IOException closeException) {
@@ -342,27 +433,27 @@ public class analisisecg extends Service
                 return;
             }
 
-            handler.post(new Runnable() {
-                public void run() {
-                    Toast.makeText(getApplicationContext(), "Dispositivo conectado", Toast.LENGTH_SHORT).show();
+            handler.post(() -> {
+                Toast.makeText(getApplicationContext(), "Dispositivo conectado", Toast.LENGTH_SHORT).show();
 
-                    if (sharedPreferences.getBoolean("mostrarinicio", true)) {
-                        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                        startActivity(intent);
-                        editor.putBoolean("mostrarinicio", false);
-                        editor.apply();
-                    }
+                if (sharedPreferences.getBoolean("mostrarinicio", true)) {
+                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    startActivity(intent);
+                    editor.putBoolean("mostrarinicio", false);
+                    editor.apply();
                 }
             });
-
             new Thread(new recibir()).start();
+
         }
+
+
     }
 
 
-    private class recibir implements Runnable {
+    class recibir implements Runnable {
         int lectura, numlectura = 0;
         double datomilivoltios, datofiltrado;
 
@@ -373,6 +464,7 @@ public class analisisecg extends Service
         ArrayList<Double> señalf1 = new ArrayList<>(Collections.nCopies(5,0d));
         ArrayList<Double> señallatido = new ArrayList<>();
         Double[] señallatido2 = new Double[181];
+        List<Integer> result;
 
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -392,7 +484,7 @@ public class analisisecg extends Service
                     datomilivoltios = (lectura * (5.0 / 1024) - 1.5625) / 1.1;
 
 
-                    if (numlectura < 148) {
+                    if (numlectura < 296) {
                         numlectura++;
                         ventana1.add(datomilivoltios);
                         mf1.add(datomilivoltios);
@@ -402,9 +494,12 @@ public class analisisecg extends Service
                         try {
                             // Set the command to launch Python and execute the script
                             //TODO script
-                            String listString = mf1.stream().map(Object::toString)
-                                    .collect(Collectors.joining(", "));
-                            String scriptPath = "script.py";
+                            String listString = null;
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                                listString = mf1.stream().map(Object::toString)
+                                        .collect(Collectors.joining(", "));
+                            }
+                            String scriptPath = "preprocess.py";
                             String[] command = new String[]{"python", scriptPath, listString};
 
                             // Create a ProcessBuilder object and set the command
@@ -420,24 +515,23 @@ public class analisisecg extends Service
                             // Convert the output to a list of integers
                             output = output.replace('[', ' ');
                             output = output.replace(']', ' ');
-                            List<Integer> result = Arrays.stream(output.split(","))
-                                    .map(String::trim)
-                                    .map(Integer::parseInt)
-                                    .collect(Collectors.toList());
+                            result = null;
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                                result = Arrays.stream(output.split(","))
+                                        .map(String::trim)
+                                        .map(Integer::parseInt)
+                                        .collect(Collectors.toList());
+                            }
 
                             // Wait for the process to finish
                             int exitCode = process.waitFor();
-                            System.out.println("Exit code: " + exitCode);
-                            System.out.println("Result: " + result);
                         } catch (IOException | InterruptedException e) {
                             e.printStackTrace();
                         }
-                        //TODO
-                        // cambiar vista
                     }
 
                     Intent intent2 = new Intent("info");
-                    intent2.putExtra("datofiltrado", datofiltrado);
+                    intent2.putIntegerArrayListExtra("datofiltrado", (ArrayList<Integer>) result);
                     getApplicationContext().sendBroadcast(intent2);
 
                 }

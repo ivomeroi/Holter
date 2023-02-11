@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_marginTop="40dp"
-        android:text="Bienvenid@ a \n Holter Bluetooth Inteligente"
+        android:text="Bienvenid@ a \n BT Holter"
         android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="@color/colorPrimaryDark"

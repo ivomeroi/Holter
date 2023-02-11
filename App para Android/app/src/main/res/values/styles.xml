@@ -10,6 +10,7 @@
 
     <style name="TextViewStyle" parent="android:Widget.TextView">
         <item name="android:textColor">@color/gray</item>
+        <item name="android:fontFamily">sans-serif-condensed-medium</item>
     </style>
 
     <style name="appalertdialog" parent="Theme.AppCompat.Light.Dialog.Alert">
