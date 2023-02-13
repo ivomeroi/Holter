@@ -1,14 +1,19 @@
 package com.example.anto.holterbluetoothinteligente;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.preference.PreferenceManager;
+
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.os.Bundle;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.Toast;
 
 public class inicio2 extends AppCompatActivity {
@@ -26,6 +31,16 @@ public class inicio2 extends AppCompatActivity {
     public void comenzar(View view) {
         if (!btadapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
             startActivityForResult(enableBtIntent, 1);
         }
         else {
@@ -46,7 +61,10 @@ public class inicio2 extends AppCompatActivity {
         if (requestcode == 1) {
             if (resultcode == RESULT_OK) {
                 Toast.makeText(this, "Bluetooth habilitado", Toast.LENGTH_SHORT).show();
-                startService(new Intent(this, analisisecg.class));
+                Intent intent = new Intent(this, analisisecg.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                startActivity(intent);
+            } else {
             }
         }
     }

@@ -1,21 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    tools:context="com.example.anto.holterbluetoothinteligente.graficos">
 
-    <androidx.viewpager.widget.ViewPager
-        android:id="@+id/vpPager"
+    <LinearLayout
+        android:id="@+id/bpm_header"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="27dp"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal">
 
-        <androidx.viewpager.widget.PagerTabStrip
-            android:id="@+id/pager_header"
+        <TextView
+            android:id="@+id/bpm_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:backgroundTint="@color/colorAccent"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:text="VALUE"
+            android:textSize="40sp" />
+
+        <TextView
+            android:id="@+id/bpm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:layout_marginRight="-40dp"
+            android:backgroundTint="@color/colorAccent"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:text="bpm"
+            android:textSize="30sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:id="@+id/datos"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="120dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp">
+
+        <TextView
+            android:id="@+id/diagnostico"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="top"
-            android:paddingBottom="16dp"
-            android:paddingTop="16dp"
-            style="@style/pagertabstrip" />
-    </androidx.viewpager.widget.ViewPager>
-</LinearLayout>
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="20dp"
+            android:text="Frecuencia Cardiaca Normal"
+            android:textSize="25sp" />
+
+        <TextView
+            android:id="@+id/mailEnviado"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:text="Se ha enviado un correo electrónico a su médico \n Presione 'Llamar' para llamar a su número de emergencia"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="40dp"
+        android:id="@+id/botones"
+        android:orientation="horizontal"
+        android:layout_alignParentBottom="true"
+        android:gravity="center_horizontal">
+
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/enviarMensaje"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:backgroundTint="@color/colorAccent"
+            android:text="Enviar SMS"
+            android:onClick="enviarMensaje"
+            android:visibility="gone"/>
+    </LinearLayout>
+
+    <HorizontalScrollView
+        android:id="@+id/horizontalScrollView"
+        android:fillViewport="true"
+        android:layout_width="match_parent"
+        android:layout_height="430dp"
+        android:layout_above="@+id/datos"
+        android:layout_marginBottom="-2dp">
+
+
+
+        <LinearLayout
+            android:id="@+id/grafico"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+
+            android:orientation="horizontal"
+        ></LinearLayout>
+    </HorizontalScrollView>
+</RelativeLayout>
