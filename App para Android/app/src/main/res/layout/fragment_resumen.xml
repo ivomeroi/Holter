@@ -56,7 +56,6 @@
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"
             android:layout_marginBottom="20dp"
-            android:gravity="center_horizontal"
             android:text="Frecuencia Cardiaca Normal"
             android:textSize="25sp" />
 
@@ -95,16 +94,22 @@
             android:visibility="gone"/>
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/grafico"
+    <HorizontalScrollView
+        android:id="@+id/horizontalScrollView"
+        android:fillViewport="true"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@id/datos"
-        android:layout_below="@+id/datos"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="-612dp"
-        android:orientation="vertical"
-        android:paddingLeft="@dimen/activity_horizontal_margin"
-        android:paddingTop="@dimen/activity_vertical_margin"
-        android:paddingRight="@dimen/activity_horizontal_margin"></LinearLayout>
+        android:layout_height="430dp"
+        android:layout_above="@+id/datos"
+        android:layout_marginBottom="-2dp">
+
+
+
+        <LinearLayout
+            android:id="@+id/grafico"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+
+            android:orientation="horizontal"
+        ></LinearLayout>
+    </HorizontalScrollView>
 </RelativeLayout>

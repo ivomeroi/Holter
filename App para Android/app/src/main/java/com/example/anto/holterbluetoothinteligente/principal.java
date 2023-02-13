@@ -34,11 +34,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class principal extends Fragment {
+    SharedPreferences sharedPreferences;
+    SharedPreferences.Editor editor;
+    int bpm = 120;
     double datomilivoltios;
     double dato;
     double i = 0;
     double periodo = 0.02761;
     long tiempo = System.currentTimeMillis();
+    ArrayList<Double> data_resumen = new ArrayList<>();
     //double periodo = 0;
 
     XYSeries data = new XYSeries("ECG");
@@ -49,7 +53,7 @@ public class principal extends Fragment {
                              Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        editor = PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
 
         XYSeriesRenderer renderer = new XYSeriesRenderer();
         XYSeries linea = new XYSeries("Baseline");
@@ -58,6 +62,7 @@ public class principal extends Fragment {
         XYMultipleSeriesDataset multidata = new XYMultipleSeriesDataset();
 
         getActivity().registerReceiver(recibirinfo, new IntentFilter("info"));
+
 
         renderer.setColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryDark));
         renderer.setLineWidth(3);
@@ -111,15 +116,9 @@ public class principal extends Fragment {
         Button boton1 = (Button) v.findViewById(R.id.finalizar);
         Button boton2 = (Button) v.findViewById(R.id.iniciarPausar);
 
-        if (sharedPreferences.getBoolean("terminado", false)) {
-            boton1.setVisibility(View.VISIBLE);
-            boton1.setText("Reiniciar");
-            boton2.setVisibility(View.GONE);
-        }
-        else {
-            boton1.setVisibility(View.VISIBLE);
-            boton2.setVisibility(View.VISIBLE);
-        }
+        boton1.setVisibility(View.VISIBLE);
+        boton2.setVisibility(View.VISIBLE);
+
 
         return v;
     }
@@ -127,10 +126,18 @@ public class principal extends Fragment {
     @Override
     public void onDestroyView(){
         getActivity().unregisterReceiver(recibirinfo);
+        String str = "";
+        for (int i = 0; i < data_resumen.size(); i++) {
+            str = str + String.valueOf(data_resumen.get(i)) +",";
+        }
+        editor.putInt("fcavgs", 120);
+        editor.putString("data_resumen", str);
+        editor.putInt("data_resumen_size", data_resumen.size());
+        editor.commit();
         super.onDestroyView();
     }
 
-    private BroadcastReceiver recibirinfo = new BroadcastReceiver() {
+     private BroadcastReceiver recibirinfo = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             datomilivoltios = intent.getDoubleExtra("datofiltrado", 0);
@@ -142,9 +149,13 @@ public class principal extends Fragment {
             }
 
             data.add(i, dato);
+
+
+            data_resumen.add(dato);
             grafico.repaint();
 
             i = i + periodo;
+
 
 //            Stream<String> result;
 //            String listString = intent.getStringExtra("datofiltrado");

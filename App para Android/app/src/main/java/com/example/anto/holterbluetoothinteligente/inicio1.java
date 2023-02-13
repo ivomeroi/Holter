@@ -98,9 +98,6 @@ public class inicio1 extends AppCompatActivity {
 //            a.add(bt.getAddress());
 //            u.add((bt.getUuids())[0].getUuid().toString());
 //        }
-//        Toast.makeText(this, "A " + s, Toast.LENGTH_SHORT).show();
-//        Toast.makeText(this, "B " + a, Toast.LENGTH_SHORT).show();
-//        Toast.makeText(this, "U " + u, Toast.LENGTH_SHORT).show();
 
     }
 }

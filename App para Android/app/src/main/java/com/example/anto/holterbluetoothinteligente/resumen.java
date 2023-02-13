@@ -19,6 +19,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
 public class resumen extends Fragment {
@@ -46,7 +48,7 @@ public class resumen extends Fragment {
     SharedPreferences.Editor editor;
     double datomilivoltios;
     double dato;
-    double i = 0;
+    double i = 0, j=0;
     double periodo = 0.002761;
     long tiempo = System.currentTimeMillis();
     //double periodo = 0;
@@ -58,8 +60,10 @@ public class resumen extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //getBpm(inflater, container, getContext());
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        editor = PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
 
         XYSeriesRenderer renderer = new XYSeriesRenderer();
         XYSeries linea = new XYSeries("Baseline");
@@ -67,7 +71,6 @@ public class resumen extends Fragment {
         XYMultipleSeriesRenderer msrenderer = new XYMultipleSeriesRenderer();
         XYMultipleSeriesDataset multidata = new XYMultipleSeriesDataset();
 
-        getActivity().registerReceiver(recibirinfo, new IntentFilter("info"));
 
         renderer.setColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryDark));
         renderer.setLineWidth(3);
@@ -118,73 +121,22 @@ public class resumen extends Fragment {
         LinearLayout v2 = (LinearLayout) v.findViewById(R.id.grafico);
         v2.addView(grafico);
 
+        String data_resumen = prefs.getString("data_resumen", "");
+        Integer data_resumen_size = prefs.getInt("data_resumen_size", 0);
+        StringTokenizer st = new StringTokenizer(data_resumen, ",");
 
-        return v;
-    }
-
-    @Override
-    public void onDestroyView(){
-        getActivity().unregisterReceiver(recibirinfo);
-        super.onDestroyView();
-    }
-
-    private BroadcastReceiver recibirinfo = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            datomilivoltios = intent.getDoubleExtra("datofiltrado", 0);
-            dato = datomilivoltios;
-
-            if (i > 2) {
-                i = 0;
-                data.clear();
-            }
-
-            data.add(i, dato);
+        for (int i = 0; i < data_resumen_size; i++) {
+            dato = Double.parseDouble(st.nextToken());
+            data.add(j, dato);
             grafico.repaint();
 
-            i = i + periodo;
+            j = j + periodo;
         }
-    };
 
-    @SuppressLint("SetTextI18n")
-    public void getBpm(LayoutInflater inflater, ViewGroup container,
-                       Bundle savedInstanceState, Context context){
+        Integer bpm = prefs.getInt("fcavg ", 0);
 
-        Calendar calendar = Calendar.getInstance();
-        int bpm = sharedPreferences.getInt("bpm", 0);
-        View v = inflater.inflate(R.layout.fragment_resumen, container, false);
         TextView diagnostico = (TextView) v.findViewById(R.id.diagnostico);
-        TextView mailEnviado = (TextView) v.findViewById(R.id.mailEnviado);
-        Button enviarMensaje = (Button) v.findViewById(R.id.enviarMensaje);
-
-        try {
-            // Set the command to launch Python and execute the script
-            //TODO script
-
-            String listString = sharedPreferences.getString("signal", "[0]");
-
-            String scriptPath = "get_bpm.py";
-            String[] command = new String[]{"python", scriptPath, listString};
-
-            // Create a ProcessBuilder object and set the command
-            ProcessBuilder pb = new ProcessBuilder(command);
-
-            // Start the process
-            Process process = pb.start();
-
-            // Read the output from the process
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String output = reader.readLine();
-
-            // Convert the output to a list of integers
-            bpm = Integer.parseInt(output.trim());
-
-            // Wait for the process to finish
-            int exitCode = process.waitFor();
-            editor.putInt("bpm", bpm);
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
+        TextView bpm_value = (TextView) v.findViewById(R.id.bpm_value);
 
         if (bpm > 100){
             editor.putString("diagnostico","Taquicardia");
@@ -198,37 +150,98 @@ public class resumen extends Fragment {
             editor.putString("diagnostico","FC Normal");
             diagnostico.setText("Frecuencia Cardiaca Normal");
         }
+        bpm_value.setText(bpm.toString());
 
-        editor.apply();
+        return v;
+    }
 
+    @Override
+    public void onDestroyView(){
+        super.onDestroyView();
+    }
 
-        if (bpm < 60 || bpm >100){
-            diagnostico.setTextColor(this.getResources().getColor(R.color.red));
-            mailEnviado.setVisibility(View.VISIBLE);
-            enviarMensaje.setVisibility(View.VISIBLE);
+    private void getBpm(LayoutInflater inflater, ViewGroup container, Context context){
 
-            String mail = sharedPreferences.getString("mailmedico", "0");
-            String tipo = sharedPreferences.getString("diagnostico", "FC Normal");
+        Calendar calendar = Calendar.getInstance();
+//        int bpm = sharedPreferences.getInt("bpm", 0);
+        View v = inflater.inflate(R.layout.fragment_resumen, container, false);
+        TextView diagnostico = (TextView) v.findViewById(R.id.diagnostico);
+        TextView mailEnviado = (TextView) v.findViewById(R.id.mailEnviado);
+        Button enviarMensaje = (Button) v.findViewById(R.id.enviarMensaje);
 
-            ArrayList<String> attachments = new ArrayList<>();
-            attachments.add("/data/user/0/com.example.anto.holterbluetoothinteligente/files/" + "informe" + String.format("%d%02d", calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE)) + ".json");
+//        try {
+//            // Set the command to launch Python and execute the script
+//            //TODO script
+//
+//            String listString = sharedPreferences.getString("signal", "[0]");
+//
+//            String scriptPath = "get_bpm.py";
+//            String[] command = new String[]{"python", scriptPath, listString};
+//
+//            // Create a ProcessBuilder object and set the command
+//            ProcessBuilder pb = new ProcessBuilder(command);
+//
+//            // Start the process
+//            Process process = pb.start();
+//
+//            // Read the output from the process
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+//            String output = reader.readLine();
+//
+//            // Convert the output to a list of integers
+//            bpm = Integer.parseInt(output.trim());
+//
+//            // Wait for the process to finish
+//            int exitCode = process.waitFor();
+//            editor.putInt("bpm", bpm);
+//        } catch (IOException | InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        double bpm = 0.0;
+//
+//        if (bpm > 100){
+//            //editor.putString("diagnostico","Taquicardia");
+//            diagnostico.setText("Taquicardia");
+//        }
+//        else if (bpm < 60){
+//            //editor.putString("diagnostico","Bradicardia");
+//            diagnostico.setText("Bradicardia");
+//        }
+//        else{
+//            //editor.putString("diagnostico","FC Normal");
+//            diagnostico.setText("Frecuencia Cardiaca Normal");
+//        }
 
-            if (!mail.equals("")) {
-                BackgroundMail.newBuilder(context.getApplicationContext())
-                        .withUsername("holterbluetoothinteligente@gmail.com")
-                        .withPassword("holter123")
-                        .withMailto(mail)
-                        .withSubject("Informe Holter Bluetooth Inteligente")
-                        .withBody("Se produjo un evento de: " + tipo + " a las " + String.format("%d:%02d", calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE)) + ". Se adjunta la señal de ECG registrada en la última hora, con la correspondiente clasificación de cada latido.")
-                        .withAttachments(attachments)
-                        .send();
-            }
-
-        } else {
-            diagnostico.setTextColor(this.getResources().getColor(R.color.gray));
-            mailEnviado.setVisibility(View.GONE);
-            enviarMensaje.setVisibility(View.GONE);
-        }
+        //editor.apply();
+//
+//
+//        if (bpm < 60 || bpm >100){
+//            diagnostico.setTextColor(this.getResources().getColor(R.color.red));
+//            mailEnviado.setVisibility(View.VISIBLE);
+//            enviarMensaje.setVisibility(View.VISIBLE);
+//
+//            String mail = sharedPreferences.getString("mailmedico", "0");
+//            String tipo = sharedPreferences.getString("diagnostico", "FC Normal");
+//
+//            ArrayList<String> attachments = new ArrayList<>();
+//            attachments.add("/data/user/0/com.example.anto.holterbluetoothinteligente/files/" + "informe" + String.format("%d%02d", calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE)) + ".json");
+//
+//            if (!mail.equals("")) {
+//                BackgroundMail.newBuilder(context.getApplicationContext())
+//                        .withUsername("holterbluetoothinteligente@gmail.com")
+//                        .withPassword("holter123")
+//                        .withMailto(mail)
+//                        .withSubject("Informe Holter Bluetooth Inteligente")
+//                        .withBody("Se produjo un evento de: " + tipo + " a las " + String.format("%d:%02d", calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE)) + ". Se adjunta la señal de ECG registrada en la última hora, con la correspondiente clasificación de cada latido.")
+//                        .withAttachments(attachments)
+//                        .send();
+//            }
+//
+//        } else {
+//            diagnostico.setTextColor(this.getResources().getColor(R.color.gray));
+//            mailEnviado.setVisibility(View.GONE);
+//            enviarMensaje.setVisibility(View.GONE);
+//        }
     }
 
     public void enviarMensaje(Context context){

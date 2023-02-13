@@ -50,13 +50,11 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     boolean fp;
-    int numsintomas = 0;
     private long mMillisUntilFinish;
     CountDownTimer countdowntimer;
     CountDownTimer assist;
     SharedPreferences sharedPreferences;
     SharedPreferences.Editor editor;
-    TableLayout tabla;
     BluetoothAdapter btadapter = BluetoothAdapter.getDefaultAdapter();
     private static final String BLUETOOTH_ADDRESS = "00:18:E4:34:C5:45"; // Replace with your HC-05's Bluetooth address
     private static final String BLUETOOTH_URL = "btspp://" + BLUETOOTH_ADDRESS + ":1;authenticate=false;encrypt=false;master=false";
@@ -256,64 +254,5 @@ public class MainActivity extends AppCompatActivity
                 startService(new Intent(this, analisisecg.class));
             }
         }
-    }
-
-    public void agregar(View view) {
-        tabla = (TableLayout) findViewById(R.id.tabla4);
-
-        AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-        alertDialog.setTitle("Agregar síntoma");
-        alertDialog.setMessage("Describa sus síntomas. Ej.: palpitaciones, mareos.");
-        final EditText texto = new EditText(MainActivity.this);
-        texto.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
-        alertDialog.setView(texto);
-        alertDialog.setPositiveButton("Aceptar",
-                new DialogInterface.OnClickListener() {
-                    @SuppressLint("ResourceAsColor")
-                    public void onClick(DialogInterface dialog, int which) {
-                        editor.putString("sintoma" + String.valueOf(numsintomas), texto.getText().toString());
-                        editor.putLong("horasintoma" + String.valueOf(numsintomas), Calendar.getInstance().getTimeInMillis());
-
-                        numsintomas++;
-                        editor.putInt("numsintomas", numsintomas);
-                        editor.apply();
-
-                        Intent intent = new Intent("sintomas");
-                        intent.putExtra("sintoma", texto.getText().toString());
-                        getApplicationContext().sendBroadcast(intent);
-
-                        TableRow row = new TableRow(getApplicationContext());
-                        TextView t1 = new TextView(getApplicationContext()), t2 = new TextView(getApplicationContext()), t3 = new TextView(getApplicationContext());
-                        Calendar calendar = Calendar.getInstance();
-
-                        t1.setText(String.format("%02d-%02d", calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.MONTH) + 1));
-                        t2.setText(String.format("%d:%02d", calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE)));
-                        t3.setText(texto.getText().toString());
-
-                        t1.setGravity(Gravity.CENTER_HORIZONTAL);
-                        t2.setGravity(Gravity.CENTER_HORIZONTAL);
-                        t3.setGravity(Gravity.CENTER_HORIZONTAL);
-
-                        t1.setTextColor(R.color.gray);
-                        t2.setTextColor(R.color.gray);
-                        t3.setTextColor(R.color.gray);
-
-                        TableRow.LayoutParams params = new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.33f);
-                        t1.setLayoutParams(params);
-                        t2.setLayoutParams(params);
-                        t3.setLayoutParams(params);
-
-                        row.addView(t1);
-                        row.addView(t2);
-                        row.addView(t3);
-
-                        tabla.addView(row, new TableLayout.LayoutParams(TableLayout.LayoutParams.WRAP_CONTENT, TableLayout.LayoutParams.WRAP_CONTENT));
-
-                        if (numsintomas > 0)
-                            tabla.setVisibility(View.VISIBLE);
-                    }
-                });
-
-        alertDialog.show();
     }
 }
